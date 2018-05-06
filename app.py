@@ -38,7 +38,7 @@ LOG_DIR =os.getcwd() + '/log'
 if not os.path.exists(LOG_DIR):
 	os.makedirs(LOG_DIR)
 LOG_FILE = LOG_DIR + '/' + str(int(millis())) + '.log'
-
+print("logfile= " + LOG_FILE)
 global logPass 
 logPass = ""
 if os.getenv('PINFO') is not None:
