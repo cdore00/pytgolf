@@ -92,7 +92,7 @@ class golfHTTPServer(BaseHTTPRequestHandler):
 			self.send_response(200)
 			# Send headers
 			self.send_header('Content-type','text/html')
-			self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io/')
+			self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
 			#  Set cookie
 			self.send_header('Set-Cookie','superBig=zag;max-age=31536000')
 			self.end_headers()
@@ -318,11 +318,11 @@ def authUser(param, self):
 		def writeCook(mess, sessID):
 			self.send_response(200)
 			self.send_header('Content-type','text/html')
-			self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io/')
+			self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
 			self.send_header("Access-Control-Allow-Origin", "GET, POST, OPTIONS")
 			self.send_header("Access-Control-Allow-Headers", "Origin, Content-Type, Cookie")
 			cook =  self.headers["Cookie"]
-			print('Cookies Allow3= ' + str(cook))
+			print('Cookies Allow4= ' + str(cook))
 			#  Set cookie
 			cookInfo = 'sessID=' + sessID + ';max-age=31536000'
 			self.send_header('Set-Cookie', cookInfo)
