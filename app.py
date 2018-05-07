@@ -93,6 +93,7 @@ class golfHTTPServer(BaseHTTPRequestHandler):
 			# Send headers
 			self.send_header('Content-type','text/html')
 			self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
+			self.send_header('Access-Control-Allow-Credentials', 'true')
 			#  Set cookie
 			self.send_header('Set-Cookie','superBig=zag;max-age=31536000')
 			self.end_headers()
@@ -319,6 +320,7 @@ def authUser(param, self):
 			self.send_response(200)
 			self.send_header('Content-type','text/html')
 			self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
+			self.send_header('Access-Control-Allow-Credentials', 'true')
 			self.send_header("Access-Control-Allow-Headers", "Origin, Content-Type, Cookie")
 			#self.send_header("Access-Control-Allow-Origin", "GET, POST, OPTIONS")
 			self.send_header("Access-Control-Allow-Headers", "Origin, Content-Type, Cookie")
