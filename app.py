@@ -329,7 +329,9 @@ def authUser(param, self):
 			print('Cookies Allow authUser 2= ' + str(cook))
 			#  Set cookie
 			#cookInfo = 'sessID=' + sessID + ';max-age=31536000'
-			cookInfo = 'sessID=' + sessID + ';max-age=31536000, userID=' + userID + ';max-age=31536000'
+			cookInfo = 'sessID=' + sessID + ';max-age=31536000'
+			self.send_header('Set-Cookie', cookInfo)
+			cookInfo = 'userID=' + userID + ';max-age=31536000'
 			self.send_header('Set-Cookie', cookInfo)
 			self.end_headers()
 			# Write content as utf-8 data
