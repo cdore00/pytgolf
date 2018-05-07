@@ -317,7 +317,7 @@ def authUser(param, self):
 	""" To Authenticate or return user info to modify """
 	#pdb.set_trace()
 	try:
-		def writeCook(mess, sessID):
+		def writeCook(mess, sessID, userID):
 			self.send_response(200)
 			self.send_header('Content-type','text/html')
 			self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
@@ -326,9 +326,10 @@ def authUser(param, self):
 
 			#self.send_header("Access-Control-Allow-Headers", "Origin, Content-Type, Cookie")
 			cook =  self.headers["Cookie"]
-			print('Cookies Allow authUser= ' + str(cook))
+			print('Cookies Allow authUser 2= ' + str(cook))
 			#  Set cookie
-			cookInfo = 'sessID=' + sessID + ';max-age=31536000'
+			#cookInfo = 'sessID=' + sessID + ';max-age=31536000'
+			cookInfo = 'sessID=' + sessID + ';max-age=31536000, userID=' + userID + ';max-age=31536000'
 			self.send_header('Set-Cookie', cookInfo)
 			self.end_headers()
 			# Write content as utf-8 data
@@ -345,7 +346,7 @@ def authUser(param, self):
 				def setSessID(mess):
 					sessID = str(ObjectId())
 					res = coll.update({"courriel": user}, { "$set": {"sessID": sessID}})
-					writeCook(mess, sessID)
+					writeCook(mess, sessID, _id)
 					
 				if doc.count() == 0:
 					return dumps({'resp': {"result": 0} })	# Authenticate fail
