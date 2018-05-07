@@ -94,6 +94,7 @@ class golfHTTPServer(BaseHTTPRequestHandler):
 			self.send_header('Content-type','text/html')
 			self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
 			self.send_header('Access-Control-Allow-Credentials', 'true')
+			self.send_header("Access-Control-Allow-Headers", "Origin, Content-Type, Cookie")
 			#  Set cookie
 			self.send_header('Set-Cookie','superBig=zag;max-age=31536000')
 			self.end_headers()
@@ -122,7 +123,7 @@ class golfHTTPServer(BaseHTTPRequestHandler):
 		post_data = self.rfile.read(content_length) # <--- Gets the data itself
 
 		cook =  self.headers["Cookie"]
-		print('Cookies Allow2= ' + str(cook))
+		print('Cookies Allow do_POST= ' + str(cook))
 		#pdb.set_trace()
 		
 		# Send message back to client
@@ -322,10 +323,10 @@ def authUser(param, self):
 			self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
 			self.send_header('Access-Control-Allow-Credentials', 'true')
 			self.send_header("Access-Control-Allow-Headers", "Origin, Content-Type, Cookie")
-			#self.send_header("Access-Control-Allow-Origin", "GET, POST, OPTIONS")
-			self.send_header("Access-Control-Allow-Headers", "Origin, Content-Type, Cookie")
+
+			#self.send_header("Access-Control-Allow-Headers", "Origin, Content-Type, Cookie")
 			cook =  self.headers["Cookie"]
-			print('Cookies Allow4= ' + str(cook))
+			print('Cookies Allow authUser= ' + str(cook))
 			#  Set cookie
 			cookInfo = 'sessID=' + sessID + ';max-age=31536000'
 			self.send_header('Set-Cookie', cookInfo)
