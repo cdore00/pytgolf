@@ -319,7 +319,8 @@ def authUser(param, self):
 			self.send_response(200)
 			self.send_header('Content-type','text/html')
 			self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
-			self.send_header("Access-Control-Allow-Origin", "GET, POST, OPTIONS")
+			self.send_header("Access-Control-Allow-Headers", "Origin, Content-Type, Cookie")
+			#self.send_header("Access-Control-Allow-Origin", "GET, POST, OPTIONS")
 			self.send_header("Access-Control-Allow-Headers", "Origin, Content-Type, Cookie")
 			cook =  self.headers["Cookie"]
 			print('Cookies Allow4= ' + str(cook))
