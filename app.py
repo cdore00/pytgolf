@@ -348,7 +348,7 @@ def authUser(param, self):
 				def setSessID(mess):
 					sessID = str(ObjectId())
 					res = coll.update({"courriel": user}, { "$set": {"sessID": sessID}})
-					writeCook(mess, sessID, _id)
+					writeCook(mess, sessID, doc['_id'])
 					
 				if doc.count() == 0:
 					return dumps({'resp': {"result": 0} })	# Authenticate fail
