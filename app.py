@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #C:\Users\cdore\AppData\Local\Programs\Python\Python36-32
 
-import pdb
+#import pdb
 #; pdb.set_trace()
 import sys, os, io, time, re, csv, urllib.parse, urllib.request
 #, http.cookies
@@ -157,7 +157,6 @@ def case_Func(fName, param, self):
 	elif fName == "showLog":
 		return(showLog(param))
 	elif fName == "getRegions":
-		print("getRegionsOk")
 		return(getRegionList())
 	elif fName == "getFav":
 		return(getFav(param, self))
@@ -345,10 +344,10 @@ def authUser(param, self):
 				coll = data.users
 				doc = coll.find({"courriel": user, "actif": True}, ["_id","Nom", "courriel", "motpass", "niveau"])
 				
-				def setSessID(mess):
+				def setSessID(mess, userID):
 					sessID = str(ObjectId())
 					res = coll.update({"courriel": user}, { "$set": {"sessID": sessID}})
-					writeCook(mess, sessID, doc['_id'])
+					writeCook(mess, sessID, userID)
 					
 				if doc.count() == 0:
 					return dumps({'resp': {"result": 0} })	# Authenticate fail
@@ -361,7 +360,7 @@ def authUser(param, self):
 						del dic['motpass']
 						docs = {"resp": {"result":True, "user": dic} }
 						res = dumps(docs)	# Authenticated
-						setSessID(res)
+						setSessID(res, dic['_id'])
 						return False
 					else:
 						return dumps({'resp': {"result": 0} })	# Authenticate fail
