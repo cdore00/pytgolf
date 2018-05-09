@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #C:\Users\cdore\AppData\Local\Programs\Python\Python36-32
 
-#import pdb
+import pdb
 #; pdb.set_trace()
 import sys, os, io, time, re, csv, urllib.parse, urllib.request
 #, http.cookies
@@ -92,11 +92,14 @@ class golfHTTPServer(BaseHTTPRequestHandler):
 			self.send_response(200)
 			# Send headers
 			self.send_header('Content-type','text/html')
-			self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
-			self.send_header('Access-Control-Allow-Credentials', 'true')
-			self.send_header("Access-Control-Allow-Headers", "Origin, Content-Type, Cookie")
+			if self.client_address[0] == '127.0.0.1':
+				self.send_header('Access-Control-Allow-Origin', '*')
+			else:
+				self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
+				self.send_header('Access-Control-Allow-Credentials', 'true')
+				self.send_header("Access-Control-Allow-Headers", "Origin, Content-Type, Cookie")
 			#  Set cookie
-			self.send_header('Set-Cookie','superBig=zag;max-age=31536000')
+			#self.send_header('Set-Cookie','superBig=zag;max-age=31536000')
 			self.end_headers()
 			# Write content as utf-8 data
 			self.wfile.write(bytes(mess, "utf8"))
@@ -319,19 +322,20 @@ def authUser(param, self):
 		def writeCook(mess, sessID, userID):
 			self.send_response(200)
 			self.send_header('Content-type','text/html')
-			self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
-			self.send_header('Access-Control-Allow-Credentials', 'true')
-			self.send_header("Access-Control-Allow-Headers", "Origin, Content-Type, Cookie")
-
-			#self.send_header("Access-Control-Allow-Headers", "Origin, Content-Type, Cookie")
-			cook =  self.headers["Cookie"]
-			print('Cookies Allow authUser 2= ' + str(cook))
-			#  Set cookie
-			#cookInfo = 'sessID=' + sessID + ';max-age=31536000'
-			cookInfo = 'sessID=' + sessID + ';max-age=31536000'
-			self.send_header('Set-Cookie', cookInfo)
-			cookInfo = 'userID=' + userID + ';max-age=31536000'
-			self.send_header('Set-Cookie', cookInfo)
+			if self.client_address[0] == '127.0.0.1':
+				self.send_header('Access-Control-Allow-Origin', '*')
+			else:
+				self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
+				self.send_header('Access-Control-Allow-Credentials', 'true')
+				self.send_header("Access-Control-Allow-Headers", "Origin, Content-Type, Cookie")
+				cook =  self.headers["Cookie"]
+				print('Cookies Allow authUser N= ' + str(cook))
+				#  Set cookie
+				#cookInfo = 'sessID=' + sessID + ';max-age=31536000'
+				cookInfo = 'sessID=' + sessID + ';max-age=31536000'
+				self.send_header('Set-Cookie', cookInfo)
+				cookInfo = 'userID=' + userID + ';max-age=31536000'
+				self.send_header('Set-Cookie', cookInfo)
 			self.end_headers()
 			# Write content as utf-8 data
 			self.wfile.write(bytes(mess, "utf8"))
@@ -541,25 +545,30 @@ def getClubParc(param, self):
 			clubList = param["data"][0]
 			ids = [x for x in clubList.split("$")]
 			clubID = int(ids[0])
-			userID = ids[1]
-			if len(userID) < 5:
-				userID = int(userID)
-			else:	
-				userID = ObjectId(userID)
+			userID = None if ids[1] == 'null' else ids[1]
+			
+			#pdb.set_trace()
+			if userID:
+				if len(userID) < 5:
+					userID = int(userID)
+				else:	
+					userID = ObjectId(userID)
 			
 			def isFavorite(doc):
-				coll = data.userFavoris
-				favDoc = coll.find({"CLUB_ID": clubID , "USER_ID": userID}, ["CLUB_ID"])
-				if favDoc.count() > 0:
-					doc['isFavorite'] = True
-				else:
-					doc['isFavorite'] = False
+				if userID is not None:
+					coll = data.userFavoris
+					favDoc = coll.find({"CLUB_ID": clubID , "USER_ID": userID}, ["CLUB_ID"])
+					if favDoc.count() > 0:
+						doc['isFavorite'] = True
+					else:
+						doc['isFavorite'] = False
 				return doc
+				
 			coll = data.club
 			docs = coll.find({"_id": clubID })
 			dic = cursorTOdict(docs)
-			x = dumps([(isFavorite(dic))])
-			return (x)
+			#x = 
+			return (dumps([(isFavorite(dic))]))
 		else:
 			return dumps({'ok': 0})	# No param
 	except:
@@ -619,23 +628,26 @@ def setGolfGPS(param, self):
 			clubId = int(para[5])
 			
 			coll = data.golfGPS
-			if toInit == 0:
-				docr = coll.update({ 'Parcours_id': courseId, 'trou': trou }, { '$set': {'Parcours_id': courseId, 'trou': trou, 'latitude': lat, 'longitude': lng } },  upsert=True )
-				return dumps(docr)
-			else:
-				for i in range(toInit):
-					holeNo = i + 1
-					#print(holeNo)
-					resp = coll.update({ 'Parcours_id': courseId, 'trou': holeNo }, { '$set': {'Parcours_id': courseId, 'trou': holeNo, 'latitude': lat, 'longitude': lng } },  upsert=True)
-					if holeNo == toInit:
-						coll = data.parcours
-						pRep = coll.update({"_id":courseId}, {"$set":{"GPS": True }})
-						pa = coll.find({'CLUB_ID': clubId})
-						strCur = dumps(pa)
-						cur = loads(strCur)
-						coll = data.club
-						res = coll.update({'_id': clubId}, {'$set':{"courses": cur }})
-						return dumps(res)
+			if checkSession(self):
+				if toInit == 0:
+					docr = coll.update({ 'Parcours_id': courseId, 'trou': trou }, { '$set': {'Parcours_id': courseId, 'trou': trou, 'latitude': lat, 'longitude': lng } },  upsert=True )
+					return dumps(docr)
+				else:
+					for i in range(toInit):
+						holeNo = i + 1
+						#print(holeNo)
+						resp = coll.update({ 'Parcours_id': courseId, 'trou': holeNo }, { '$set': {'Parcours_id': courseId, 'trou': holeNo, 'latitude': lat, 'longitude': lng } },  upsert=True)
+						if holeNo == toInit:
+							coll = data.parcours
+							pRep = coll.update({"_id":courseId}, {"$set":{"GPS": True }})
+							pa = coll.find({'CLUB_ID': clubId})
+							strCur = dumps(pa)
+							cur = loads(strCur)
+							coll = data.club
+							res = coll.update({'_id': clubId}, {'$set':{"courses": cur }})
+							return dumps(res)
+			else: 
+				return ('{"n":0,"ok":0, "message": "S0062"}')
 		else:
 			return dumps({'ok': 0})	# No param
 	except:
