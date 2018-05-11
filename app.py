@@ -48,6 +48,9 @@ if os.getenv('PINFO') is not None:
 import pymongo
 from pymongo import MongoClient
 
+dbase = "golf"
+port = 27017
+uri = "mongodb://localhost"
 if os.environ.get('MONGODB_USER'):
 	port = int(os.environ['MONGODB_PORT'])
 	user = urllib.parse.quote_plus(os.environ['MONGODB_USER'])
@@ -55,10 +58,6 @@ if os.environ.get('MONGODB_USER'):
 	domain = urllib.parse.quote_plus(os.environ['MONGODB_SERVICE'])
 	dbase = urllib.parse.quote_plus(os.environ['MONGODB_DATABASE'])
 	uri = "mongodb://%s:%s@%s/%s?authMechanism=SCRAM-SHA-1" % (user, passw, domain, dbase)
-else:
-	dbase = "golf"
-	port = 27017
-	uri = "mongodb://localhost"
 
 client = MongoClient(uri, port)
 data = client[dbase]
@@ -224,15 +223,19 @@ def cursorTOdict(doc):
 	jsonCur = loads(strCur)
 	return dict(jsonCur[0])
 	
-def checkSession(self):
+def checkSession(self, role = None):
 	""" Session ID check for user"""
+	#pdb.set_trace()
 	strCook =  self.headers["Cookie"]
 	if strCook and 'sessID' in strCook and 'userID' in strCook:
 		cookie.load(strCook)
 		sID = cookie['sessID'].value
 		uID = getID(cookie['userID'].value)
 		coll = data.users
-		doc = coll.find({"_id": uID, "sessID": sID}, ["_id"])
+		if role is None:
+			doc = coll.find({"_id": uID, "sessID": sID}, ["_id"])
+		else:
+			doc = coll.find({"_id": uID, "sessID": sID, "niveau":{"$in": role }}, ["_id"])
 		if doc.count() > 0:
 			return True
 		else:
@@ -628,7 +631,7 @@ def setGolfGPS(param, self):
 			clubId = int(para[5])
 			
 			coll = data.golfGPS
-			if checkSession(self):
+			if checkSession(self, role = ['ADM','MEA']):
 				if toInit == 0:
 					docr = coll.update({ 'Parcours_id': courseId, 'trou': trou }, { '$set': {'Parcours_id': courseId, 'trou': trou, 'latitude': lat, 'longitude': lng } },  upsert=True )
 					return dumps(docr)
