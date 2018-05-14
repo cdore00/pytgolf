@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #C:\Users\cdore\AppData\Local\Programs\Python\Python36-32
 
-import pdb
+#import pdb
 #; pdb.set_trace()
 import sys, os, io, time, re, csv, urllib.parse, urllib.request
 #, http.cookies
@@ -764,7 +764,7 @@ def getGameTab(param, self):
 				if doc['score_date'] != None:
 					ts = doc['score_date'] / 1000
 					doc['score_date'] = datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
-						
+					#pdb.set_trace()	
 				return(getBloc(doc))
 		else:
 			return dumps({'ok': 0})	# No param
