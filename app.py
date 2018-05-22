@@ -665,13 +665,16 @@ def countUserGame(param, self):
 			is18 = int(para[1])
 
 			coll = data.score
-
+			#pdb.set_trace()
 			if (is18 == 18):
 				count = coll.find({"USER_ID": user, "T18": { "$exists": True, "$nin": [ 0 ] }}).count()
-				return (str(count))
+				group = coll.aggregate([ {"$match" : {"USER_ID": user, "T18": { "$exists": True, "$nin": [ 0 ] }}}, {"$group" : {"_id":{"name":"$name","parcours":"$PARCOURS_ID"}, "count":{"$sum":1}}} ])
+				return ('{"count":' + str(count) + ',"group":' + dumps(group) + '}')
 			else:
 				count = coll.find({"USER_ID": user, "$or":[{"T18":0},{"T18":None}]  } ).count()
-				return (str(count))
+				group = coll.aggregate([ {"$match" : {"USER_ID": user, "$or":[{"T18":0},{"T18":None}]  }}, {"$group" : {"_id":{"name":"$name","parcours":"$PARCOURS_ID"}, "count":{"$sum":1}}} ])
+				return ('{"count":' + str(count) + ',"group":' + dumps(group) + '}')
+				#return (str(count))
 		else:
 			return dumps({'ok': 0})	# No param
 	except:
@@ -686,10 +689,15 @@ def getGameList(param, self):
 			limit = int(param["limit"][0])
 			is18 = int(param["is18"][0])
 			intDate = int(param["date"][0])
+			if param.get("parc"):
+				parc = int(param["parc"][0])
+			else:
+				parc = 0
 			if param.get("tele"):
 				intTele = int(param["tele"][0])
 			else:
 				intTele = 0
+
 			if intDate == 0:   # ou 0 ???
 				intDate = 9999999999999
 
@@ -728,16 +736,19 @@ def getGameList(param, self):
 					return False
 				else:
 					return dumps(cur)
-				
+
 			if is18 == 18:
-				doc = coll.find({"USER_ID": user, "score_date": {"$lt":intDate}, "T18": { "$exists": True, "$nin": [ 0 ] } }).sort("score_date",-1).skip(skip).limit(limit)
+				qO = {"USER_ID": user, "score_date": {"$lt":intDate}, "T18": { "$exists": True, "$nin": [ 0 ] } }
+				#doc = coll.find({"USER_ID": user, "PARCOURS_ID": parc, "score_date": {"$lt":intDate}, "T18": { "$exists": True, "$nin": [ 0 ] } }).sort("score_date",-1).skip(skip).limit(limit)
 			else:
-				doc = coll.find({"USER_ID": user, "score_date": {"$lt":intDate}, "$or":[{"T18":0},{"T18":None}]  } ).sort("score_date",-1).skip(skip).limit(limit)			
-			
-			#docs = cursorTOdict(doc)
+				qO = {"USER_ID": user, "score_date": {"$lt":intDate}, "$or":[{"T18":0},{"T18":None}]  }
+				#doc = coll.find({"USER_ID": user, "score_date": {"$lt":intDate}, "$or":[{"T18":0},{"T18":None}]  } ).sort("score_date",-1).skip(skip).limit(limit)			
+
+			if parc != 0:
+				qO["PARCOURS_ID"] = parc				
+			doc = coll.find(qO).sort("score_date",-1).skip(skip).limit(limit)
 			return addCur(doc)
 			
-			#return str(intDate)
 		else:
 			return dumps({'ok': 0})	# No param
 	except:
