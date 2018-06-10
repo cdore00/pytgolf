@@ -372,7 +372,6 @@ def authUser(param, self):
 					else:
 						return dumps({'resp': {"result": 0} })	# Authenticate fail
 				else:
-					#pdb.set_trace()
 					if param.get("action"):
 						action = param["action"][0]
 						if action == "1":	# To modifiy account
@@ -550,7 +549,6 @@ def getClubParc(param, self):
 			clubID = int(ids[0])
 			userID = None if ids[1] == 'null' else ids[1]
 			
-			#pdb.set_trace()
 			if userID:
 				if len(userID) < 5:
 					userID = int(userID)
@@ -774,8 +772,7 @@ def getGameTab(param, self):
 				doc = cursorTOdict(doc)
 				if doc['score_date'] != None:
 					ts = doc['score_date'] / 1000
-					doc['score_date'] = datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
-					#pdb.set_trace()	
+					doc['score_date'] = datetime.fromtimestamp(ts).strftime('%Y-%m-%d')	
 				return(getBloc(doc))
 		else:
 			return dumps({'ok': 0})	# No param
@@ -991,10 +988,10 @@ def send_email(fromuser, recipient, subject, text, html):
 # Start server listening request
 def run(server_class=HTTPServer, handler_class=golfHTTPServer, port=8080, domain = ''):
 	# Server settings
-	print(str(port))
 	server_address = (domain, port)
 	httpd = HTTPServer(server_address, handler_class)
 	print('running server...(' + domain + ":" + str(port) + ')')
+	log_Info('running server...(' + domain + ":" + str(port) + ')')
 	httpd.serve_forever()
 	return
 
