@@ -721,7 +721,7 @@ def getGameList(param, self):
 						self.wfile.write(bytes(dumps(cur), "utf8"))
 					if (intTele == 1):	# CSV file
 						outFile = io.StringIO()
-						output = csv.writer(outFile)
+						output = csv.writer(outFile, delimiter=';')
 						output.writerow(cur[0].keys())	#Column names
 						for x in cur:
 							output.writerow(x.values())
