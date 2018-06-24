@@ -91,7 +91,7 @@ class golfHTTPServer(BaseHTTPRequestHandler):
 			self.send_response(200)
 			# Send headers
 			self.send_header('Content-type','text/html')
-			if self.client_address[0] == '127.0.0.1':
+			if self.client_address[0] == '127.0.0.1' or self.client_address[0] == '172.17.0.1':
 				self.send_header('Access-Control-Allow-Origin', '*')
 			else:
 				self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
@@ -862,9 +862,13 @@ def getGame(param, self, userID = False, parcID = False):
 			coll = data.score
 			#pdb.set_trace()
 			doc = coll.find({ "USER_ID": user, "PARCOURS_ID": parc, "score_date": None })
-			cur = cursorTOdict(doc)
-			cur['_id'] = str(cur['_id'])
-			return dumps([cur]) 
+			if doc.count() > 0:
+				cur = cursorTOdict(doc)
+				cur['_id'] = str(cur['_id'])
+				return dumps([cur]) 
+			else:
+				return dumps([]) 
+			
 		if param:
 			if param.get("data"):
 				param = param["data"][0]
