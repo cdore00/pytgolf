@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #C:\Users\cdore\AppData\Local\Programs\Python\Python36-32
 
-#import pdb
+import pdb
 #; pdb.set_trace()
 import sys, os, io, time, re, csv, urllib.parse, urllib.request
 #, http.cookies
@@ -72,13 +72,14 @@ class golfHTTPServer(BaseHTTPRequestHandler):
 	
 	@staticmethod
 	def call_Func(strURL):
-		fpart = os.path.split(strURL)
-		strURL = fpart[len(fpart)-1]
+		#pdb.set_trace()
+		#fpart = os.path.split(strURL)
+		#strURL = fpart[len(fpart)-1]
 		pos = strURL.find("?")
 		if pos == -1:
-		  func = strURL[0:]
+		  func = strURL[1:]
 		else:
-		  func = strURL[0:pos]
+		  func = strURL[1:pos]
 		return func
 	
 	@staticmethod
@@ -190,8 +191,10 @@ def case_Func(fName, param, self):
 		return(getGolfGPS(param, self))
 	elif fName == "getGame":
 		return(getGame(param, self))
+	elif fName == "saveClub":
+		return(saveClub(param, self))
 	else:
-		return("DB server2" + str(param))
+		return("DB server22" + str(param))
 
 
 # Requests
@@ -878,6 +881,60 @@ def getGame(param, self, userID = False, parcID = False):
 				return getG(user, parc)
 		else:
 			return getG(userID, parcID)
+	except:
+		log_Info(self.path + " ERROR: " + sys.exc_info()[0] + " ; " + str(sys.exc_info()[1]))
+
+def saveClub(param, self):
+	""" Save Club data """
+
+	try:
+		if param.get("data"):
+
+			def saveCourses(clubID):
+				""" Save courses data for the Club """
+				courseRes = []
+				coll = data.parcours
+				docs = coll.remove({"CLUB_ID": clubID })
+				#pdb.set_trace()
+				def getCourseID():
+					docID = coll.find({}).sort("_id",-1).limit(1)
+					return int(docID[0]["_id"] + 1)
+
+				for parc in oCourses:
+					res=dict()
+					if parc["_id"] > 1000000:
+						#pdb.set_trace()
+						res["oldID"] = parc["_id"]
+						parc["_id"] = getCourseID()
+						res["newID"] = parc["_id"]
+					
+					doc = coll.update({ '_id': parc["_id"]}, { '$set': {'CLUB_ID': parc["CLUB_ID"], 'POINTS': parc["POINTS"], 'PARCOURS': parc["PARCOURS"], 'DEPUIS': parc["DEPUIS"], 'TROUS': parc["TROUS"], 'NORMALE': parc["NORMALE"], 'VERGES': parc["VERGES"], 'GPS': parc["GPS"] } },  upsert=True )
+					res["result"]=doc
+					courseRes.append(res)
+				
+				return courseRes
+				#[{'_id': '39', 'CLUB_ID': 47, 'POINTS': '24', 'PARCOURS': '', 'DEPUIS': '1990', 'TROUS': '18', 'NORMALE': '72', 'VERGES': '6322', 'GPS': True}, {'_id': 61, 'CLUB_ID': 47, 'POINTS': 'E', 'PARCOURS': '', 'DEPUIS': 0, 'TROUS': 9, 'NORMALE': 27, 'VERGES': 815, 'GPS': False}]
+
+			param = param["data"][0]
+			oId = 0;
+			jsonCur = loads(param)
+			obj = dict(jsonCur)
+			oClub = obj["club"]
+			oCourses = obj["course"]
+			oBlocs = obj["blocs"]
+			#{'name': 'Auberivière', 'addr': '777, rue Alexandre', 'ville': 'Lévis', 'codp': 'G6V 7M5', 'tel1': '418-835-0480', 'urlc': 'http://www.golflauberiviere.com/', 'urlv': 'http://www.ville.levis.qc.ca/', 'lng': '-71.188', 'lat': '46.764', 'region': '2'}
+			
+			coll = data.club
+			doc = coll.update({ '_id': oClub["ID"]}, { '$set': {'nom': oClub["name"], 'prive': oClub["prive"], 'adresse': oClub["addr"], 'municipal': oClub["ville"], 'codepostal': oClub["codp"], 'codepostal2': oClub["codp"], 'url_club': oClub["urlc"], 'url_ville': oClub["urlv"], 'telephone': oClub["tel1"], 'telephone2': oClub["tel2"], 'telephone3': oClub["tel3"], 'region': oClub["region"], 'latitude': oClub["lat"], 'longitude': oClub["lng"] } },  upsert=True )
+			#pdb.set_trace()
+			courseRes = saveCourses(oClub["ID"])
+			#pdb.set_trace()
+			upd=coll.update({'_id':oClub["ID"]}, {'$set':{"courses": oCourses, "location": {'type': "Point", 'coordinates': [ oClub["lng"], oClub["lat"] ]} }});
+			doc["courses"] = courseRes
+			#"[{"_id": 47, "nom": "Auberivi\u00e8re", "url_club": "http://www.golflauberiviere.com/", "prive": false, "depuis": 1990, "municipal": "L\u00e9vis", "url_ville": "http://www.ville.levis.qc.ca/", "telephone": "418-835-0480", "telephone2": "", "telephone3": "418-835-0480", "adresse": "777, rue Alexandre", "codepostal2": "G6V 7M5", "region": 2, "codepostal": "G6V7M5", "longitude": -71.188, "latitude": 46.764, "courses": [{"_id": 39, "CLUB_ID": 47, "POINTS": 24, "PARCOURS": "", "DEPUIS": 1990, "TROUS": 18, "NORMALE": 72, "VERGES": 6322, "GPS": true}, {"_id": 61, "CLUB_ID": 47, "POINTS": "E", "PARCOURS": "", "DEPUIS": 0, "TROUS": 9, "NORMALE": 27, "VERGES": 815, "GPS": false}], "location": {"type": "Point", "coordinates": [-71.188, 46.764]}}]"
+			return dumps(doc)
+		else:
+			return dumps({'ok': 0})	# No param
 	except:
 		log_Info(self.path + " ERROR: " + sys.exc_info()[0] + " ; " + str(sys.exc_info()[1]))
 
