@@ -103,7 +103,6 @@ class golfHTTPServer(BaseHTTPRequestHandler):
 			self.end_headers()
 			# Write content as utf-8 data
 			self.wfile.write(bytes(mess, "utf8"))
-			
 			return
 
 	# GET
@@ -113,7 +112,7 @@ class golfHTTPServer(BaseHTTPRequestHandler):
 		# Send message back to client
 		query_components = parse_qs(urlparse(self.path).query)
 		url = self.path
-		print("GET " + url)
+		#print("GET " + url)
 		message = case_Func(self.call_Func(url), query_components, self)
 		self.return_Res(self,message)
 		return
@@ -134,7 +133,8 @@ class golfHTTPServer(BaseHTTPRequestHandler):
 		if not query_components:
 			query_components = urllib.parse.parse_qsl(str(post_data.decode('utf-8')))
 		url = self.path
-		print("POST " + url)
+		
+		##print("POST2 " + url)
 		message = case_Func(self.call_Func(url), query_components, self)
 		self.return_Res(self,message)
 		
@@ -201,7 +201,6 @@ def case_Func(fName, param, self):
 def ose(self):
 	print(logPass)
 	ostxt = (os.environ)
-	#print(str(ostxt))
 	
 	#f = open('workfile.txt', 'w')
 	#f.write("testtt\n")
@@ -444,7 +443,7 @@ def getRegionList():
 	return res
 	
 def searchResult(param, self):
-	#print(str(param))
+
 	try:
 		if param.get("qn"):
 			qNom = param["qn"][0]
@@ -527,7 +526,6 @@ def updateFav(param, self):
 			return dumps({'ok': 0})	# No param	
 	except:
 		log_Info(self.path + " ERROR: " + sys.exc_info()[0] + " ; " + str(sys.exc_info()[1]))
-		#print("INATTENDU error:" , sys.exc_info()[0] )
 		
 			
 def getClubList(param, self):
@@ -577,7 +575,6 @@ def getClubParc(param, self):
 			return dumps({'ok': 0})	# No param
 	except:
 		log_Info(self.path + " ERROR: " + str(sys.exc_info()[1]))
-		print("INATTENDU error:" , sys.exc_info()[0] )
 		
 def getBloc(param, self):
 	try:	
@@ -639,7 +636,6 @@ def setGolfGPS(param, self):
 				else:
 					for i in range(toInit):
 						holeNo = i + 1
-						#print(holeNo)
 						resp = coll.update({ 'Parcours_id': courseId, 'trou': holeNo }, { '$set': {'Parcours_id': courseId, 'trou': holeNo, 'latitude': lat, 'longitude': lng } },  upsert=True)
 						if holeNo == toInit:
 							coll = data.parcours
@@ -885,38 +881,69 @@ def getGame(param, self, userID = False, parcID = False):
 		log_Info(self.path + " ERROR: " + sys.exc_info()[0] + " ; " + str(sys.exc_info()[1]))
 
 def saveClub(param, self):
-	""" Save Club data """
+	""" Save Club, courses and blocs data """
 
 	try:
 		if param.get("data"):
 
-			def saveCourses(clubID):
+			def saveBlocs(tupC):
+				""" Save blocs data for the courses """
+				blocRes = []
+				coll = data.blocs
+				def getBlocID():
+					#pdb.set_trace()
+					docID = coll.find({}).sort("_id",-1).limit(1)
+					return int(docID[0]["_id"] + 1)
+
+				for bloc in oBlocs:
+					res=dict()
+					if len(str(bloc["_id"])) < 9 and bloc["_id"] > 1000000:	# Not ObjectID and new attributed bloc ID 
+						res["oldID"] = bloc["_id"]
+						bloc["_id"] =  ObjectId()  #getBlocID()
+						res["newID"] = str(bloc["_id"])
+						for y in tupC:
+							if bloc["PARCOURS_ID"] in y:
+								bloc["PARCOURS_ID"] = y[1]	# Replace PARCOURS_ID by res["newID"] attributed
+						
+					print("save id " + str(bloc["_id"]) + "  PARCOURS_ID " + str(bloc["PARCOURS_ID"]))
+					doc = coll.update({ '_id': bloc["_id"]}, { '$set': {'PARCOURS_ID': bloc["PARCOURS_ID"], 'Bloc': bloc["Bloc"], 'T1': bloc["T1"], 'T2': bloc["T2"], 'T3': bloc["T3"], 'T4': bloc["T4"], 'T5': bloc["T5"], 'T6': bloc["T6"], 'T7': bloc["T7"], 'T8': bloc["T8"], 'T9': bloc["T9"], 'T10': bloc["T10"], 'T11': bloc["T11"], 'T12': bloc["T12"], 'T13': bloc["T13"], 'T14': bloc["T14"], 'T15': bloc["T15"], 'T16': bloc["T16"], 'T17': bloc["T17"], 'T18': bloc["T18"], 'Aller': bloc["Aller"], 'Retour': bloc["Retour"], 'Total': bloc["Total"], 'Eval': bloc["Eval"], 'Slope': bloc["Slope"] } },  upsert=True )
+
+					res["result"]=doc
+					blocRes.append(res)
+				return blocRes
+				
+			def saveCourses(clubID, tupC):
 				""" Save courses data for the Club """
 				courseRes = []
 				coll = data.parcours
+				collB = data.blocs
 				docs = coll.remove({"CLUB_ID": clubID })
 				#pdb.set_trace()
 				def getCourseID():
 					docID = coll.find({}).sort("_id",-1).limit(1)
 					return int(docID[0]["_id"] + 1)
+				def removeBloc(parcID):
+					docs = collB.remove({"PARCOURS_ID": parcID })
+					return
 
 				for parc in oCourses:
 					res=dict()
 					if parc["_id"] > 1000000:
-						#pdb.set_trace()
 						res["oldID"] = parc["_id"]
 						parc["_id"] = getCourseID()
 						res["newID"] = parc["_id"]
-					
+						tupC = tupC,(res["oldID"],res["newID"])
+					removeBloc(parc["_id"])
+					print("save courses " + str(parc["_id"]))
 					doc = coll.update({ '_id': parc["_id"]}, { '$set': {'CLUB_ID': parc["CLUB_ID"], 'POINTS': parc["POINTS"], 'PARCOURS': parc["PARCOURS"], 'DEPUIS': parc["DEPUIS"], 'TROUS': parc["TROUS"], 'NORMALE': parc["NORMALE"], 'VERGES': parc["VERGES"], 'GPS': parc["GPS"] } },  upsert=True )
 					res["result"]=doc
 					courseRes.append(res)
-				
-				return courseRes
+				return courseRes, tupC
 				#[{'_id': '39', 'CLUB_ID': 47, 'POINTS': '24', 'PARCOURS': '', 'DEPUIS': '1990', 'TROUS': '18', 'NORMALE': '72', 'VERGES': '6322', 'GPS': True}, {'_id': 61, 'CLUB_ID': 47, 'POINTS': 'E', 'PARCOURS': '', 'DEPUIS': 0, 'TROUS': 9, 'NORMALE': 27, 'VERGES': 815, 'GPS': False}]
-
+			
+			""" Save Club data """
 			param = param["data"][0]
-			oId = 0;
+			tupC = (0,0),(0,0)	# For new PARCOURS_ID in blocs
 			jsonCur = loads(param)
 			obj = dict(jsonCur)
 			oClub = obj["club"]
@@ -926,12 +953,13 @@ def saveClub(param, self):
 			
 			coll = data.club
 			doc = coll.update({ '_id': oClub["ID"]}, { '$set': {'nom': oClub["name"], 'prive': oClub["prive"], 'adresse': oClub["addr"], 'municipal': oClub["ville"], 'codepostal': oClub["codp"], 'codepostal2': oClub["codp"], 'url_club': oClub["urlc"], 'url_ville': oClub["urlv"], 'telephone': oClub["tel1"], 'telephone2': oClub["tel2"], 'telephone3': oClub["tel3"], 'region': oClub["region"], 'latitude': oClub["lat"], 'longitude': oClub["lng"] } },  upsert=True )
-			#pdb.set_trace()
-			courseRes = saveCourses(oClub["ID"])
-			#pdb.set_trace()
+
+			courseRes, tupC = saveCourses(oClub["ID"], tupC)
+			blocRes = saveBlocs(tupC)
 			upd=coll.update({'_id':oClub["ID"]}, {'$set':{"courses": oCourses, "location": {'type': "Point", 'coordinates': [ oClub["lng"], oClub["lat"] ]} }});
 			doc["courses"] = courseRes
-			#"[{"_id": 47, "nom": "Auberivi\u00e8re", "url_club": "http://www.golflauberiviere.com/", "prive": false, "depuis": 1990, "municipal": "L\u00e9vis", "url_ville": "http://www.ville.levis.qc.ca/", "telephone": "418-835-0480", "telephone2": "", "telephone3": "418-835-0480", "adresse": "777, rue Alexandre", "codepostal2": "G6V 7M5", "region": 2, "codepostal": "G6V7M5", "longitude": -71.188, "latitude": 46.764, "courses": [{"_id": 39, "CLUB_ID": 47, "POINTS": 24, "PARCOURS": "", "DEPUIS": 1990, "TROUS": 18, "NORMALE": 72, "VERGES": 6322, "GPS": true}, {"_id": 61, "CLUB_ID": 47, "POINTS": "E", "PARCOURS": "", "DEPUIS": 0, "TROUS": 9, "NORMALE": 27, "VERGES": 815, "GPS": false}], "location": {"type": "Point", "coordinates": [-71.188, 46.764]}}]"
+			doc["blocs"] = blocRes
+
 			return dumps(doc)
 		else:
 			return dumps({'ok': 0})	# No param
@@ -951,7 +979,6 @@ def log_Info(mess):
 def listLog(param):
 	""" For typing password """
 	if param:
-		#print("call=" + str(param))
 		res = dict(param)
 		passw = ""
 		if "pass" in res:
@@ -979,7 +1006,7 @@ def listLogs():
 	
 def showLog(param):
 	""" Display log file"""
-	print(str(param))
+
 	if param.get("nam"):
 		fileName = param["nam"][0]
 	lines = [line.rstrip('\n') for line in open(LOG_DIR + "/" + fileName)]
@@ -1014,7 +1041,6 @@ def sendConfMail(link, email, name):
 
 	# Create the body of the message (a plain-text and an HTML version).
 	text = "Hi %s!\nCliquer ce lien pour confirmer l\'inscription de votre compte:\n%s\n\nGolf du Québec" % (name, link)
-	print(text)
 	html = """\
 	<html><body><div style="text-align: center;"><div style="background-color: #3A9D23;height: 34px;"><div style="margin: 3px;float:left;"><img alt="Image Golf du Québec" width="25" height="25" src="https://cdore00.github.io/golf/images/golf.png" /></div><div style="font-size: 22px;font-weight: bold;color: #ccf;padding-top: 5px;">Golfs du Qu&eacute;bec</div></div></br><a href="%s" style="font-size: 20px;font-weight: bold;">Cliquer ce lien pour confirmer l\'inscription de votre compte:<p>%s</p> </a></br></br></br><p><div id="copyright">Copyright &copy; 2005-2018</div></p></div></body></html>
 	""" % (link, email)
@@ -1073,19 +1099,17 @@ def build_arg_dict(arg):
 	if "pass" in arg:
 		add_dict("pass")
 		
-	#print("DIC=" + str(argd) + str(len(arg)) + str(len(argd)))
 	if (len(arg) / 2) != len(argd):
 		return False
 	else:
 		return argd
 
 if __name__ == "__main__":
-	print(argv[0])
+	#print(argv[0])
 	if len(argv) > 1:
 		arg = [x for x in argv]
 		del arg[0]
 		param = build_arg_dict(arg)
-		#print(str(param))
 		if param:
 			if "pass" in param:
 				#global logPass 
