@@ -193,6 +193,8 @@ def case_Func(fName, param, self):
 		return(getGame(param, self))
 	elif fName == "saveClub":
 		return(saveClub(param, self))
+	elif fName == "delClub":
+		return(delClub(param, self))
 	else:
 		return("DB server22" + str(param))
 
@@ -949,14 +951,29 @@ def saveClub(param, self):
 			oClub = obj["club"]
 			oCourses = obj["course"]
 			oBlocs = obj["blocs"]
+			#Postal code
+			cp = oClub["codp"]
+			cp = cp.upper()
+			cp = re.sub(r" ", "", cp)
+			cps = cp
+			matchObj = re.match("^(?!.*[DFIOQU])[A-VXY][0-9][A-Z]●?[0-9][A-Z][0-9]$"  ,cp)
+			if (matchObj):
+				cps = cp[0:3] + " " + cp[3:6]
 			#{'name': 'Auberivière', 'addr': '777, rue Alexandre', 'ville': 'Lévis', 'codp': 'G6V 7M5', 'tel1': '418-835-0480', 'urlc': 'http://www.golflauberiviere.com/', 'urlv': 'http://www.ville.levis.qc.ca/', 'lng': '-71.188', 'lat': '46.764', 'region': '2'}
-			
-			coll = data.club
-			doc = coll.update({ '_id': oClub["ID"]}, { '$set': {'nom': oClub["name"], 'prive': oClub["prive"], 'adresse': oClub["addr"], 'municipal': oClub["ville"], 'codepostal': oClub["codp"], 'codepostal2': oClub["codp"], 'url_club': oClub["urlc"], 'url_ville': oClub["urlv"], 'telephone': oClub["tel1"], 'telephone2': oClub["tel2"], 'telephone3': oClub["tel3"], 'region': oClub["region"], 'latitude': oClub["lat"], 'longitude': oClub["lng"] } },  upsert=True )
 
-			courseRes, tupC = saveCourses(oClub["ID"], tupC)
+			coll = data.club
+			def getClubID():
+				docID = coll.find({}).sort("_id",-1).limit(1)
+				return int(docID[0]["_id"] + 1)
+			#pdb.set_trace()
+			clubID = oClub["ID"]
+			if clubID > 1000000:
+				clubID = getClubID()
+			doc = coll.update({ '_id': clubID}, { '$set': {'nom': oClub["name"], 'prive': oClub["prive"], 'adresse': oClub["addr"], 'municipal': oClub["ville"], 'codepostal': cp, 'codepostal2': cps, 'url_club': oClub["urlc"], 'url_ville': oClub["urlv"], 'telephone': oClub["tel1"], 'telephone2': oClub["tel2"], 'telephone3': oClub["tel3"], 'region': oClub["region"], 'latitude': oClub["lat"], 'longitude': oClub["lng"] } },  upsert=True )
+
+			courseRes, tupC = saveCourses(clubID, tupC)
 			blocRes = saveBlocs(tupC)
-			upd=coll.update({'_id':oClub["ID"]}, {'$set':{"courses": oCourses, "location": {'type': "Point", 'coordinates': [ oClub["lng"], oClub["lat"] ]} }});
+			upd=coll.update({'_id':clubID}, {'$set':{"courses": oCourses, "location": {'type': "Point", 'coordinates': [ oClub["lng"], oClub["lat"] ]} }});
 			doc["courses"] = courseRes
 			doc["blocs"] = blocRes
 
@@ -966,6 +983,32 @@ def saveClub(param, self):
 	except:
 		log_Info(self.path + " ERROR: " + sys.exc_info()[0] + " ; " + str(sys.exc_info()[1]))
 
+def delClub(param, self):
+	try:
+		if param.get("data"):
+			clubID = int(param["data"][0])
+			
+			collC = data.club
+			collP = data.parcours
+			collB = data.blocs
+			
+			# Course collection
+			Pdocs = collP.find({"CLUB_ID": clubID })
+			Pids = []
+			for x in Pdocs:
+				Pids.append(x['_id'])
+				
+			#Remove data
+			doc = collB.remove({"PARCOURS_ID":{"$in": Pids }})
+			doc = collP.remove({"CLUB_ID":clubID})
+			doc = collC.remove({"_id": clubID })
+			
+			return dumps(doc)
+		else:
+			return dumps({'ok': 0})	# No param
+	except:
+		log_Info(self.path + " ERROR: " + sys.exc_info()[0] + " ; " + str(sys.exc_info()[1]))
+		
 # Manage logs
 
 def log_Info(mess):
