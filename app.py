@@ -4,7 +4,6 @@
 import pdb
 #; pdb.set_trace()
 import sys, os, io, time, re, csv, urllib.parse, urllib.request
-#, http.cookies
 import smtplib
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -17,9 +16,6 @@ from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 MAIL_USER = 'charles.dore@nexio.com' 
-
-#import requests as req
-#from io import BytesIO
 
 cookie = SimpleCookie()
 
@@ -39,6 +35,7 @@ if not os.path.exists(LOG_DIR):
 	os.makedirs(LOG_DIR)
 LOG_FILE = LOG_DIR + '/' + str(int(millis())) + '.log'
 print("logfile= " + LOG_FILE)
+
 global logPass 
 logPass = ""
 if os.getenv('PINFO') is not None:
@@ -69,7 +66,7 @@ import json
 
 # HTTPRequestHandler class
 class golfHTTPServer(BaseHTTPRequestHandler):
-	
+	localClient = False
 	@staticmethod
 	def call_Func(strURL):
 		#pdb.set_trace()
@@ -92,7 +89,7 @@ class golfHTTPServer(BaseHTTPRequestHandler):
 			self.send_response(200)
 			# Send headers
 			self.send_header('Content-type','text/html')
-			if self.client_address[0] == '127.0.0.1' or self.client_address[0] == '172.17.0.1':
+			if self.localClient:
 				self.send_header('Access-Control-Allow-Origin', '*')
 			else:
 				self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
@@ -117,10 +114,11 @@ class golfHTTPServer(BaseHTTPRequestHandler):
 		self.return_Res(self,message)
 		return
 
-		
 	# POST	
 	def do_POST(self):
 		"""Manage POST request received"""
+		self.localClient = (self.client_address[0] == '127.0.0.1' or self.client_address[0] == '172.17.0.1')
+		
 		content_length = int(self.headers['Content-Length']) # <--- Gets the size of data
 		post_data = self.rfile.read(content_length) # <--- Gets the data itself
 
@@ -329,7 +327,7 @@ def authUser(param, self):
 		def writeCook(mess, sessID, userID):
 			self.send_response(200)
 			self.send_header('Content-type','text/html')
-			if self.client_address[0] == '127.0.0.1':
+			if self.localClient:
 				self.send_header('Access-Control-Allow-Origin', '*')
 			else:
 				self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
@@ -914,12 +912,12 @@ def saveClub(param, self):
 					blocRes.append(res)
 				return blocRes
 				
-			def saveCourses(clubID, tupC):
+			def saveCourses(clubID, tupC, Pids):
 				""" Save courses data for the Club """
 				courseRes = []
 				coll = data.parcours
 				collB = data.blocs
-				docs = coll.remove({"CLUB_ID": clubID })
+				#docs = coll.remove({"CLUB_ID": clubID })
 				#pdb.set_trace()
 				def getCourseID():
 					docID = coll.find({}).sort("_id",-1).limit(1)
@@ -940,10 +938,19 @@ def saveClub(param, self):
 					doc = coll.update({ '_id': parc["_id"]}, { '$set': {'CLUB_ID': parc["CLUB_ID"], 'POINTS': parc["POINTS"], 'PARCOURS': parc["PARCOURS"], 'DEPUIS': parc["DEPUIS"], 'TROUS': parc["TROUS"], 'NORMALE': parc["NORMALE"], 'VERGES': parc["VERGES"], 'GPS': parc["GPS"] } },  upsert=True )
 					res["result"]=doc
 					courseRes.append(res)
+					#pdb.set_trace()
+					if parc["_id"] in Pids:
+						Pids.remove(parc["_id"])
+					
+					docs = coll.remove({"CLUB_ID": {"$in": Pids } })
 				return courseRes, tupC
 				#[{'_id': '39', 'CLUB_ID': 47, 'POINTS': '24', 'PARCOURS': '', 'DEPUIS': '1990', 'TROUS': '18', 'NORMALE': '72', 'VERGES': '6322', 'GPS': True}, {'_id': 61, 'CLUB_ID': 47, 'POINTS': 'E', 'PARCOURS': '', 'DEPUIS': 0, 'TROUS': 9, 'NORMALE': 27, 'VERGES': 815, 'GPS': False}]
 			
 			""" Save Club data """
+			def getClubID():
+				docID = coll.find({}).sort("_id",-1).limit(1)
+				return int(docID[0]["_id"] + 1)
+				
 			param = param["data"][0]
 			tupC = (0,0),(0,0)	# For new PARCOURS_ID in blocs
 			jsonCur = loads(param)
@@ -962,16 +969,16 @@ def saveClub(param, self):
 			#{'name': 'Auberivière', 'addr': '777, rue Alexandre', 'ville': 'Lévis', 'codp': 'G6V 7M5', 'tel1': '418-835-0480', 'urlc': 'http://www.golflauberiviere.com/', 'urlv': 'http://www.ville.levis.qc.ca/', 'lng': '-71.188', 'lat': '46.764', 'region': '2'}
 
 			coll = data.club
-			def getClubID():
-				docID = coll.find({}).sort("_id",-1).limit(1)
-				return int(docID[0]["_id"] + 1)
+
 			#pdb.set_trace()
 			clubID = oClub["ID"]
 			if clubID > 1000000:
 				clubID = getClubID()
 			doc = coll.update({ '_id': clubID}, { '$set': {'nom': oClub["name"], 'prive': oClub["prive"], 'adresse': oClub["addr"], 'municipal': oClub["ville"], 'codepostal': cp, 'codepostal2': cps, 'url_club': oClub["urlc"], 'url_ville': oClub["urlv"], 'telephone': oClub["tel1"], 'telephone2': oClub["tel2"], 'telephone3': oClub["tel3"], 'region': oClub["region"], 'latitude': oClub["lat"], 'longitude': oClub["lng"] } },  upsert=True )
-
-			courseRes, tupC = saveCourses(clubID, tupC)
+			#pdb.set_trace()
+			Pids = getCourseColl(clubID)
+			Bids = getBlocColl(Pids)
+			courseRes, tupC = saveCourses(clubID, tupC, Pids)
 			blocRes = saveBlocs(tupC)
 			upd=coll.update({'_id':clubID}, {'$set':{"courses": oCourses, "location": {'type': "Point", 'coordinates': [ oClub["lng"], oClub["lat"] ]} }});
 			doc["courses"] = courseRes
@@ -983,6 +990,22 @@ def saveClub(param, self):
 	except:
 		log_Info(self.path + " ERROR: " + sys.exc_info()[0] + " ; " + str(sys.exc_info()[1]))
 
+def getCourseColl(clubID):
+	collP = data.parcours
+	Pdocs = collP.find({"CLUB_ID": clubID })
+	Pids = []
+	for x in Pdocs:
+		Pids.append(x['_id'])
+	return Pids
+
+def getBlocColl(courseColl):
+	collB = data.blocs
+	Bdocs = collB.find({"PARCOURS_ID":{"$in": courseColl }})
+	Bids = []
+	for x in Bdocs:
+		Bids.append(x['_id'])
+	return Bids
+	
 def delClub(param, self):
 	try:
 		if param.get("data"):
@@ -993,10 +1016,7 @@ def delClub(param, self):
 			collB = data.blocs
 			
 			# Course collection
-			Pdocs = collP.find({"CLUB_ID": clubID })
-			Pids = []
-			for x in Pdocs:
-				Pids.append(x['_id'])
+			Pids = getCourseColl(clubID)
 				
 			#Remove data
 			doc = collB.remove({"PARCOURS_ID":{"$in": Pids }})
