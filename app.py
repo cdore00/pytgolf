@@ -77,6 +77,9 @@ class golfHTTPServer(BaseHTTPRequestHandler):
 		  func = strURL[1:]
 		else:
 		  func = strURL[1:pos]
+		#pdb.set_trace()
+		fpart = func.split("/")
+		func = fpart[len(fpart)-1]
 		return func
 	
 	@staticmethod
@@ -117,7 +120,7 @@ class golfHTTPServer(BaseHTTPRequestHandler):
 	# POST	
 	def do_POST(self):
 		"""Manage POST request received"""
-		self.localClient = (self.client_address[0] == '127.0.0.1' or self.client_address[0] == '172.17.0.1')
+		self.localClient = (self.client_address[0] == '127.0.0.1')  # or self.client_address[0] == '172.17.0.1')
 		
 		content_length = int(self.headers['Content-Length']) # <--- Gets the size of data
 		post_data = self.rfile.read(content_length) # <--- Gets the data itself
@@ -330,7 +333,11 @@ def authUser(param, self):
 			if self.localClient:
 				self.send_header('Access-Control-Allow-Origin', '*')
 			else:
-				self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
+				if self.headers.get('Host') == 'cdore00.github.io':
+					self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
+				if self.headers.get('Host') == 'cdore.ddns.net':
+					self.send_header('Access-Control-Allow-Origin', 'https://cdore.ddns.net')
+				
 				self.send_header('Access-Control-Allow-Credentials', 'true')
 				self.send_header("Access-Control-Allow-Headers", "Origin, Content-Type, Cookie")
 				cook =  self.headers["Cookie"]
@@ -602,7 +609,7 @@ def getClubParcTrous(param, self):
 
 			if doc.count() > 0:
 				coll = data.golfGPS
-				docs = coll.find({"Parcours_id": courseID }).sort("trou")
+				docs = coll.find({"Parcours_id": courseID }).sort([['Parcours_id', pymongo.ASCENDING], ['trou', pymongo.ASCENDING]])
 				if docs.count() > 0:
 					dic = cursorTOdict(doc)
 					res = [dic]				
@@ -818,7 +825,10 @@ def updateGame(param, self):
 			put = int(para[4])
 			lost = int(para[5])
 			name = (para[6])
-			
+			if stroke == 0:	#Delete score hole
+				stroke = None
+				put = None
+				lost = None
 			Tno = "T" + str(hole)
 			Pno = "P" + str(hole)
 			Lno = "L" + str(hole)
@@ -886,7 +896,7 @@ def saveClub(param, self):
 	try:
 		if param.get("data"):
 
-			def saveBlocs(tupC):
+			def saveBlocs(tupC, Bids):
 				""" Save blocs data for the courses """
 				blocRes = []
 				coll = data.blocs
@@ -894,9 +904,10 @@ def saveClub(param, self):
 					#pdb.set_trace()
 					docID = coll.find({}).sort("_id",-1).limit(1)
 					return int(docID[0]["_id"] + 1)
-
+				
 				for bloc in oBlocs:
 					res=dict()
+					
 					if len(str(bloc["_id"])) < 9 and bloc["_id"] > 1000000:	# Not ObjectID and new attributed bloc ID 
 						res["oldID"] = bloc["_id"]
 						bloc["_id"] =  ObjectId()  #getBlocID()
@@ -904,26 +915,33 @@ def saveClub(param, self):
 						for y in tupC:
 							if bloc["PARCOURS_ID"] in y:
 								bloc["PARCOURS_ID"] = y[1]	# Replace PARCOURS_ID by res["newID"] attributed
-						
+					else:
+						bloc["_id"] = getID(str(bloc["_id"]))
+						if bloc["_id"] in Bids:
+							Bids.remove(bloc["_id"])
 					print("save id " + str(bloc["_id"]) + "  PARCOURS_ID " + str(bloc["PARCOURS_ID"]))
 					doc = coll.update({ '_id': bloc["_id"]}, { '$set': {'PARCOURS_ID': bloc["PARCOURS_ID"], 'Bloc': bloc["Bloc"], 'T1': bloc["T1"], 'T2': bloc["T2"], 'T3': bloc["T3"], 'T4': bloc["T4"], 'T5': bloc["T5"], 'T6': bloc["T6"], 'T7': bloc["T7"], 'T8': bloc["T8"], 'T9': bloc["T9"], 'T10': bloc["T10"], 'T11': bloc["T11"], 'T12': bloc["T12"], 'T13': bloc["T13"], 'T14': bloc["T14"], 'T15': bloc["T15"], 'T16': bloc["T16"], 'T17': bloc["T17"], 'T18': bloc["T18"], 'Aller': bloc["Aller"], 'Retour': bloc["Retour"], 'Total': bloc["Total"], 'Eval': bloc["Eval"], 'Slope': bloc["Slope"] } },  upsert=True )
 
 					res["result"]=doc
+					res["result"]["_id"] = bloc["_id"]
 					blocRes.append(res)
-				return blocRes
+				#pdb.set_trace()
+				docs = coll.remove({"_id": {"$in": Bids } })
+				return blocRes, Bids
 				
 			def saveCourses(clubID, tupC, Pids):
 				""" Save courses data for the Club """
 				courseRes = []
 				coll = data.parcours
-				collB = data.blocs
-				#docs = coll.remove({"CLUB_ID": clubID })
-				#pdb.set_trace()
 				def getCourseID():
 					docID = coll.find({}).sort("_id",-1).limit(1)
 					return int(docID[0]["_id"] + 1)
-				def removeBloc(parcID):
-					docs = collB.remove({"PARCOURS_ID": parcID })
+				def removeCourse(Pids):
+					collB = data.blocs
+					docs = coll.remove({"_id": {"$in": Pids } })			# Remove Courses
+					docs = collB.remove({"PARCOURS_ID": {"$in": Pids } })	# Remove Bloc Courses
+					collG = data.golfGPS
+					docs = collG.remove({"Parcours_id": {"$in": Pids } })	# Remove GPS Courses   À TESTER
 					return
 
 				for parc in oCourses:
@@ -933,58 +951,65 @@ def saveClub(param, self):
 						parc["_id"] = getCourseID()
 						res["newID"] = parc["_id"]
 						tupC = tupC,(res["oldID"],res["newID"])
-					removeBloc(parc["_id"])
+					#removeBloc(parc["_id"])
 					print("save courses " + str(parc["_id"]))
 					doc = coll.update({ '_id': parc["_id"]}, { '$set': {'CLUB_ID': parc["CLUB_ID"], 'POINTS': parc["POINTS"], 'PARCOURS': parc["PARCOURS"], 'DEPUIS': parc["DEPUIS"], 'TROUS': parc["TROUS"], 'NORMALE': parc["NORMALE"], 'VERGES': parc["VERGES"], 'GPS': parc["GPS"] } },  upsert=True )
 					res["result"]=doc
+					res["result"]["_id"] = parc["_id"]
 					courseRes.append(res)
 					#pdb.set_trace()
 					if parc["_id"] in Pids:
 						Pids.remove(parc["_id"])
-					
-					docs = coll.remove({"CLUB_ID": {"$in": Pids } })
-				return courseRes, tupC
+				
+				if len(Pids) > 0:
+					removeCourse(Pids)
+				return courseRes, tupC, Pids
 				#[{'_id': '39', 'CLUB_ID': 47, 'POINTS': '24', 'PARCOURS': '', 'DEPUIS': '1990', 'TROUS': '18', 'NORMALE': '72', 'VERGES': '6322', 'GPS': True}, {'_id': 61, 'CLUB_ID': 47, 'POINTS': 'E', 'PARCOURS': '', 'DEPUIS': 0, 'TROUS': 9, 'NORMALE': 27, 'VERGES': 815, 'GPS': False}]
 			
 			""" Save Club data """
-			def getClubID():
-				docID = coll.find({}).sort("_id",-1).limit(1)
-				return int(docID[0]["_id"] + 1)
+
+			if checkSession(self, role = ['ADM','MEA']):
+			#if True:
+				coll = data.club
+				def getClubID():
+					docID = coll.find({}).sort("_id",-1).limit(1)
+					return int(docID[0]["_id"] + 1)
+				#pdb.set_trace()
+				param = param["data"][0]
+				tupC = (0,0),(0,0)	# For new PARCOURS_ID in blocs
+				jsonCur = loads(param)
+				obj = dict(jsonCur)
+				oClub = obj["club"]
+				oCourses = obj["course"]
+				oBlocs = obj["blocs"]
+				#Postal code
+				cp = oClub["codp"]
+				cp = cp.upper()
+				cp = re.sub(r" ", "", cp)
+				cps = cp
+				matchObj = re.match("^(?!.*[DFIOQU])[A-VXY][0-9][A-Z]●?[0-9][A-Z][0-9]$"  ,cp)
+				if (matchObj):
+					cps = cp[0:3] + " " + cp[3:6]
+				#{'name': 'Auberivière', 'addr': '777, rue Alexandre', 'ville': 'Lévis', 'codp': 'G6V 7M5', 'tel1': '418-835-0480', 'urlc': 'http://www.golflauberiviere.com/', 'urlv': 'http://www.ville.levis.qc.ca/', 'lng': '-71.188', 'lat': '46.764', 'region': '2'}
+				#pdb.set_trace()
+				clubID = oClub["ID"]
+				if clubID > 1000000:	# New club
+					clubID = getClubID()
 				
-			param = param["data"][0]
-			tupC = (0,0),(0,0)	# For new PARCOURS_ID in blocs
-			jsonCur = loads(param)
-			obj = dict(jsonCur)
-			oClub = obj["club"]
-			oCourses = obj["course"]
-			oBlocs = obj["blocs"]
-			#Postal code
-			cp = oClub["codp"]
-			cp = cp.upper()
-			cp = re.sub(r" ", "", cp)
-			cps = cp
-			matchObj = re.match("^(?!.*[DFIOQU])[A-VXY][0-9][A-Z]●?[0-9][A-Z][0-9]$"  ,cp)
-			if (matchObj):
-				cps = cp[0:3] + " " + cp[3:6]
-			#{'name': 'Auberivière', 'addr': '777, rue Alexandre', 'ville': 'Lévis', 'codp': 'G6V 7M5', 'tel1': '418-835-0480', 'urlc': 'http://www.golflauberiviere.com/', 'urlv': 'http://www.ville.levis.qc.ca/', 'lng': '-71.188', 'lat': '46.764', 'region': '2'}
-
-			coll = data.club
-
-			#pdb.set_trace()
-			clubID = oClub["ID"]
-			if clubID > 1000000:
-				clubID = getClubID()
-			doc = coll.update({ '_id': clubID}, { '$set': {'nom': oClub["name"], 'prive': oClub["prive"], 'adresse': oClub["addr"], 'municipal': oClub["ville"], 'codepostal': cp, 'codepostal2': cps, 'url_club': oClub["urlc"], 'url_ville': oClub["urlv"], 'telephone': oClub["tel1"], 'telephone2': oClub["tel2"], 'telephone3': oClub["tel3"], 'region': oClub["region"], 'latitude': oClub["lat"], 'longitude': oClub["lng"] } },  upsert=True )
-			#pdb.set_trace()
-			Pids = getCourseColl(clubID)
-			Bids = getBlocColl(Pids)
-			courseRes, tupC = saveCourses(clubID, tupC, Pids)
-			blocRes = saveBlocs(tupC)
-			upd=coll.update({'_id':clubID}, {'$set':{"courses": oCourses, "location": {'type': "Point", 'coordinates': [ oClub["lng"], oClub["lat"] ]} }});
-			doc["courses"] = courseRes
-			doc["blocs"] = blocRes
-
-			return dumps(doc)
+				doc = coll.update({ '_id': clubID}, { '$set': {'nom': oClub["name"], 'prive': oClub["prive"], 'adresse': oClub["addr"], 'municipal': oClub["ville"], 'codepostal': cp, 'codepostal2': cps, 'url_club': oClub["urlc"], 'url_ville': oClub["urlv"], 'telephone': oClub["tel1"], 'telephone2': oClub["tel2"], 'telephone3': oClub["tel3"], 'region': oClub["region"], 'latitude': oClub["lat"], 'longitude': oClub["lng"] } },  upsert=True )
+				
+				Pids = getCourseColl(clubID)
+				Bids = getBlocColl(Pids)
+				courseRes, tupC, cRem = saveCourses(clubID, tupC, Pids)
+				blocRes, bRem = saveBlocs(tupC, Bids)
+				upd=coll.update({'_id':clubID}, {'$set':{"courses": oCourses, "location": {'type': "Point", 'coordinates': [ oClub["lng"], oClub["lat"] ]} }});
+				doc["courses"] = courseRes
+				doc["blocs"] = blocRes
+				doc["removedC"] = cRem
+				doc["removedB"] = bRem
+				return dumps(doc)
+			else: 
+				return ('{"n":0,"ok":0, "message": "S0062"}')	# Check Session error
 		else:
 			return dumps({'ok': 0})	# No param
 	except:
