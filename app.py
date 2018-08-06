@@ -170,6 +170,8 @@ def case_Func(fName, param, self):
 		return(searchResult(param, self))
 	elif fName == "getClubList":
 		return(getClubList(param, self))
+	elif fName == "getClubData":
+		return(getClubData(param, self))
 	elif fName == "getClubParc":
 		return(getClubParc(param, self))
 	elif fName == "getBloc":
@@ -548,6 +550,32 @@ def getClubList(param, self):
 	else:
 		return dumps({'ok': 0})	# No param
 
+def getClubData(param, self):
+	try:
+		if param.get("data"):
+			#pdb.set_trace()
+			#{'data': ['39$61']}
+			oData = []
+			oData.append(getRegionList())
+			clb = getClubParc(param, self)
+			oData.append(clb)
+			clb = loads(clb)
+			
+			strParc = ""
+			for x in clb[0]['courses']:
+				strParc += str(x['_id']) + "$"
+			strParc=strParc[0:len(strParc)-1]
+			pBlc = {}
+			#pdb.set_trace()
+			pBlc['data'] = [strParc]
+			oData.append(getBloc(pBlc, self))
+			
+			return dumps(oData)
+		else:
+			return dumps({'ok': 0})	# No param
+	except:
+		log_Info(self.path + " ERROR: " + str(sys.exc_info()[1]))		
+		
 def getClubParc(param, self):
 	""" To get club and his courses info"""
 	try:
@@ -556,7 +584,7 @@ def getClubParc(param, self):
 			ids = [x for x in clubList.split("$")]
 			clubID = int(ids[0])
 			userID = None if ids[1] == 'null' else ids[1]
-			
+			#pdb.set_trace()
 			if userID:
 				if len(userID) < 5:
 					userID = int(userID)
@@ -564,7 +592,7 @@ def getClubParc(param, self):
 					userID = ObjectId(userID)
 			
 			def isFavorite(doc):
-				if userID is not None:
+				if userID is not None and len(str(userID)) > 0:
 					coll = data.userFavoris
 					favDoc = coll.find({"CLUB_ID": clubID , "USER_ID": userID}, ["CLUB_ID"])
 					if favDoc.count() > 0:
@@ -576,7 +604,7 @@ def getClubParc(param, self):
 			coll = data.club
 			docs = coll.find({"_id": clubID })
 			dic = cursorTOdict(docs)
-			#x = 
+
 			return (dumps([(isFavorite(dic))]))
 		else:
 			return dumps({'ok': 0})	# No param
@@ -586,6 +614,7 @@ def getClubParc(param, self):
 def getBloc(param, self):
 	try:	
 		if param.get("data"):
+			
 			blocList = param["data"][0]
 			ids = [int(x) for x in blocList.split("$")]
 			coll = data.blocs 
