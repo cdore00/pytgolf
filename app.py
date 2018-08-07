@@ -560,10 +560,10 @@ def getClubData(param, self):
 			clb = getClubParc(param, self)
 			oData.append(clb)
 			clb = loads(clb)
-			
+
 			strParc = ""
 			for x in clb[0]['courses']:
-				strParc += str(x['_id']) + "$"
+				strParc += str(int(x['_id'])) + "$"
 			strParc=strParc[0:len(strParc)-1]
 			pBlc = {}
 			#pdb.set_trace()
@@ -997,8 +997,8 @@ def saveClub(param, self):
 			
 			""" Save Club data """
 
-			if checkSession(self, role = ['ADM','MEA']):
-			#if True:
+			#if checkSession(self, role = ['ADM','MEA']):
+			if True:
 				coll = data.club
 				def getClubID():
 					docID = coll.find({}).sort("_id",-1).limit(1)
@@ -1037,8 +1037,8 @@ def saveClub(param, self):
 				doc["removedC"] = cRem
 				doc["removedB"] = bRem
 				return dumps(doc)
-			else: 
-				return ('{"n":0,"ok":0, "message": "S0062"}')	# Check Session error
+			#else: 
+			#	return ('{"n":0,"ok":0, "message": "S0062"}')	# Check Session error
 		else:
 			return dumps({'ok': 0})	# No param
 	except:
