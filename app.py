@@ -937,7 +937,7 @@ def saveClub(param, self):
 				for bloc in oBlocs:
 					res=dict()
 					
-					if len(str(bloc["_id"])) < 9 and bloc["_id"] > 1000000:	# Not ObjectID and new attributed bloc ID 
+					if len(str(bloc["_id"])) < 9 and int(bloc["_id"]) > 1000000:	# Not ObjectID and new attributed bloc ID 
 						res["oldID"] = bloc["_id"]
 						bloc["_id"] =  ObjectId()  #getBlocID()
 						res["newID"] = str(bloc["_id"])
