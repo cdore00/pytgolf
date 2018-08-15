@@ -1010,7 +1010,8 @@ def saveClub(param, self):
 				obj = dict(jsonCur)
 				oClub = obj["club"]
 				oCourses = obj["course"]
-				oBlocs = obj["blocs"]
+				if 'blocs' in obj:
+					oBlocs = obj["blocs"]
 				#Postal code
 				cp = oClub["codp"]
 				cp = cp.upper()
@@ -1030,7 +1031,11 @@ def saveClub(param, self):
 				Pids = getCourseColl(clubID)
 				Bids = getBlocColl(Pids)
 				courseRes, tupC, cRem = saveCourses(clubID, tupC, Pids)
-				blocRes, bRem = saveBlocs(tupC, Bids)
+				if 'oBlocs' in locals():
+					blocRes, bRem = saveBlocs(tupC, Bids)
+				else:
+					blocRes = []
+					bRem = []
 				upd=coll.update({'_id':clubID}, {'$set':{"courses": oCourses, "location": {'type': "Point", 'coordinates': [ oClub["lng"], oClub["lat"] ]} }});
 				doc["courses"] = courseRes
 				doc["blocs"] = blocRes
