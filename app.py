@@ -55,6 +55,12 @@ if os.environ.get('MONGODB_USER'):
 	domain = urllib.parse.quote_plus(os.environ['MONGODB_SERVICE'])
 	dbase = urllib.parse.quote_plus(os.environ['MONGODB_DATABASE'])
 	uri = "mongodb://%s:%s@%s/%s?authMechanism=SCRAM-SHA-1" % (user, passw, domain, dbase)
+	if domain == "192.168.10.11":
+		HOSTclient = 'https://cdore.ddns.net/pyt/'
+	else:
+		HOSTclient = 'https://pytgolf-cdore2.a3c1.starter-us-west-1.openshiftapps.com/'
+		#HOSTclient = 'https://pytgolf-cd-serv.1d35.starter-us-east-1.openshiftapps.com/'
+	print("HOSTclient=" + HOSTclient)
 
 client = MongoClient(uri, port)
 data = client[dbase]
@@ -62,8 +68,7 @@ from bson import ObjectId
 from bson.json_util import dumps
 from bson.json_util import loads
 import json
-
-
+	
 # HTTPRequestHandler class
 class golfHTTPServer(BaseHTTPRequestHandler):
 	localClient = False
@@ -216,7 +221,7 @@ def ose(self):
 	#json.dump(x, f)
 			
 	log_Info('oseFunct')
-
+	print(ostxt)
 	return(logPass)
 
 def getID(strID):
@@ -274,12 +279,12 @@ def addUserIdent(param, self):
 				if doc['actif'] == True:
 					return dumps({"code":2, "message": "S0058"})
 			else:
-				res = coll.insert_one({"Nom": user , "courriel": email, "motpass": passw , "niveau": "MEM", "actif": False}, {"new":True})
+				res = coll.insert({"Nom": user , "courriel": email, "motpass": passw , "niveau": "MEM", "actif": False}, {"new":True})
 
 				name = user
 				if name == "":
 					name = email
-				#"http://localhost/confInsc?data=" +
+
 				sendConfMail( HOSTclient + "confInsc?data=" + email , email, name)
 				log_Info("Nouveau compte créé: " + email)
 				return dumps({"code":-1, "message": "S0052"})
@@ -301,7 +306,9 @@ def confInsc(param, self):
 				#activateAccount(loginUser(res, docs[0].courriel, docs[0].motpass))
 				res = coll.update({"courriel": user}, { "$set": {"actif": True}})
 				log_Info("Nouveau compte activé: " + docs[0]['courriel'])
-				redir = """<html><head><script type="text/javascript" language="Javascript">function initPage(){var cliURL = "%s",user = "%s",pass = "%s";document.location.href = cliURL + "login.html?data=" + user + "$pass$" + pass;}</script></head><body onload="initPage()"><h1>Confirmation en cours...</h1></body></html>""" % (HOSTclient, docs[0]['courriel'], docs[0]['motpass'])
+				domain = "http://" + self.headers["Host"] + "/"
+				#pdb.set_trace()
+				redir = """<html><head><script type="text/javascript" language="Javascript">function initPage(){var cliURL = "%s",user = "%s",pass = "%s";document.location.href = cliURL + "login.html?data=" + user + "$pass$" + pass;}</script></head><body onload="initPage()"><h1>Confirmation en cours...</h1></body></html>""" % (domain, docs[0]['courriel'], docs[0]['motpass'])
 				return redir
 		else:	
 			return("Confirm" + str(param))		
