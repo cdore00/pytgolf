@@ -1026,7 +1026,7 @@ def saveClub(param, self):
 				if clubID > 1000000:	# New club
 					clubID = getClubID()
 				
-				doc = coll.update({ '_id': clubID}, { '$set': {'nom': oClub["name"], 'prive': oClub["prive"], 'adresse': oClub["addr"], 'municipal': oClub["ville"], 'codepostal': cp, 'codepostal2': cps, 'url_club': oClub["urlc"], 'url_ville': oClub["urlv"], 'telephone': oClub["tel1"], 'telephone2': oClub["tel2"], 'telephone3': oClub["tel3"], 'region': oClub["region"], 'latitude': oClub["lat"], 'longitude': oClub["lng"] } },  upsert=True )
+				doc = coll.update({ '_id': clubID}, { '$set': {'nom': oClub["name"], 'prive': oClub["prive"], 'adresse': oClub["addr"], 'municipal': oClub["ville"], 'codepostal': cp, 'codepostal2': cps, 'url_club': oClub["urlc"], 'url_ville': oClub["urlv"], 'telephone': oClub["tel1"], 'telephone2': oClub["tel2"], 'telephone3': oClub["tel3"], 'email': oClub["email"], 'region': oClub["region"], 'latitude': oClub["lat"], 'longitude': oClub["lng"] } },  upsert=True )
 				
 				Pids = getCourseColl(clubID)
 				Bids = getBlocColl(Pids)
