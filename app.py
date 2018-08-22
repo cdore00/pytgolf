@@ -338,11 +338,13 @@ def authUser(param, self):
 	#pdb.set_trace()
 	try:
 		def writeCook(mess, sessID, userID):
+			#pdb.set_trace()
 			self.send_response(200)
 			self.send_header('Content-type','text/html')
 			if self.localClient:
 				self.send_header('Access-Control-Allow-Origin', '*')
 			else:
+				print('Allow-Origin= ' + str(self.headers.get('Host')))
 				if self.headers.get('Host') == 'cdore00.github.io':
 					self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
 				if self.headers.get('Host') == 'cdore.ddns.net':
@@ -353,16 +355,13 @@ def authUser(param, self):
 				cook =  self.headers["Cookie"]
 				print('Cookies Allow authUser N= ' + str(cook))
 				#  Set cookie
-				#cookInfo = 'sessID=' + sessID + ';max-age=31536000'
 				cookInfo = 'sessID=' + sessID + ';max-age=31536000'
 				self.send_header('Set-Cookie', cookInfo)
 				cookInfo = 'userID=' + userID + ';max-age=31536000'
 				self.send_header('Set-Cookie', cookInfo)
-				print('Cookies Allow authUser N=2 ')
 			self.end_headers()
 			# Write content as utf-8 data
 			self.wfile.write(bytes(mess, "utf8"))
-			print('Cookies Allow authUser N=3 ')
 			return	
 		
 		if param:
