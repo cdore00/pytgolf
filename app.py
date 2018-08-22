@@ -344,14 +344,16 @@ def authUser(param, self):
 			if self.localClient:
 				self.send_header('Access-Control-Allow-Origin', '*')
 			else:
-				print('Allow-Origin= ' + str(self.headers.get('Host')))
+				"""print('Allow-Origin= ' + str(self.headers.get('Host')))
 				if self.headers.get('Host') == 'cdore00.github.io':
 					print('Allow-Origin detect= ' + str(self.headers.get('Host')))
 					self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
 				if self.headers.get('Host') == 'cdore.ddns.net':
 					print('Allow-Origin detect= ' + str(self.headers.get('Host')))
-					self.send_header('Access-Control-Allow-Origin', 'https://cdore.ddns.net')
-				
+					#self.send_header('Access-Control-Allow-Origin', 'https://cdore.ddns.net')
+					self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
+				"""	
+				self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
 				self.send_header('Access-Control-Allow-Credentials', 'true')
 				self.send_header("Access-Control-Allow-Headers", "Origin, Content-Type, Cookie")
 				cook =  self.headers["Cookie"]
