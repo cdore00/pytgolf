@@ -346,8 +346,10 @@ def authUser(param, self):
 			else:
 				print('Allow-Origin= ' + str(self.headers.get('Host')))
 				if self.headers.get('Host') == 'cdore00.github.io':
+					print('Allow-Origin detect= ' + str(self.headers.get('Host')))
 					self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
 				if self.headers.get('Host') == 'cdore.ddns.net':
+					print('Allow-Origin detect= ' + str(self.headers.get('Host')))
 					self.send_header('Access-Control-Allow-Origin', 'https://cdore.ddns.net')
 				
 				self.send_header('Access-Control-Allow-Credentials', 'true')
