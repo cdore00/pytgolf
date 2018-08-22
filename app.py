@@ -366,7 +366,7 @@ def authUser(param, self):
 			#pdb.set_trace()
 			if not isinstance(param, (list)) and param.get("user"):
 				user = param["user"][0]
-				print("1- user= " + user)
+				print("1- user= " + str(user))
 				coll = data.users
 				doc = coll.find({"courriel": user, "actif": True}, ["_id","Nom", "courriel", "motpass", "niveau"])
 				
