@@ -708,7 +708,7 @@ def countUserGame(param, self):
 		if param.get("data"):
 			param = param["data"][0]
 			para = [x for x in param.split("$")]
-			user = int(para[0])
+			user = getID(para[0])
 			is18 = int(para[1])
 
 			coll = data.score
