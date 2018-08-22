@@ -58,8 +58,8 @@ if os.environ.get('MONGODB_USER'):
 	if domain == "192.168.10.11":
 		HOSTclient = 'https://cdore.ddns.net/pyt/'
 	else:
-		HOSTclient = 'https://pytgolf-cdore2.a3c1.starter-us-west-1.openshiftapps.com/'
-		#HOSTclient = 'https://pytgolf-cd-serv.1d35.starter-us-east-1.openshiftapps.com/'
+		HOSTclient = 'https://pytgolf-cd-serv.1d35.starter-us-east-1.openshiftapps.com/'
+		#HOSTclient = 'https://pytgolf-cdore2.a3c1.starter-us-west-1.openshiftapps.com/'
 	print("HOSTclient=" + HOSTclient)
 
 client = MongoClient(uri, port)
@@ -363,6 +363,7 @@ def authUser(param, self):
 			return	
 		
 		if param:
+			pdb.set_trace()
 			if not isinstance(param, (list)) and param.get("user"):
 				user = param["user"][0]
 				
