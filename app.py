@@ -56,9 +56,11 @@ if os.environ.get('MONGODB_USER'):
 	dbase = urllib.parse.quote_plus(os.environ['MONGODB_DATABASE'])
 	uri = "mongodb://%s:%s@%s/%s?authMechanism=SCRAM-SHA-1" % (user, passw, domain, dbase)
 	if domain == "192.168.10.11":
-		HOSTclient = 'https://cdore.ddns.net/pyt/'
+		HOSTclient = 'https://cdore.ddns.net/'
+		HOSTserv = 'https://cdore.ddns.net/pyt/'
 	else:
-		HOSTclient = 'https://pytgolf-cd-serv.1d35.starter-us-east-1.openshiftapps.com/'
+		HOSTclient = 'https://cdore00.github.io/golf/'
+		HOSTserv = 'https://pytgolf-cd-serv.1d35.starter-us-east-1.openshiftapps.com/'
 		#HOSTclient = 'https://pytgolf-cdore2.a3c1.starter-us-west-1.openshiftapps.com/'
 	print("HOSTclient=" + HOSTclient)
 
@@ -272,7 +274,7 @@ def addUserIdent(param, self):
 				doc = cursorTOdict(docs)
 				if doc['actif'] == False:
 					if doc['motpass'] == passw:
-						sendConfMail( HOSTclient + "confInsc?data=" + email , email, doc['Nom'])
+						sendConfMail( HOSTserv + "confInsc?data=" + email , email, doc['Nom'])
 						return dumps({"code":1, "message": "S0050"})	#existInactif(doc)
 					else:
 						return dumps({"code":3, "message": "S0051"})
@@ -285,7 +287,7 @@ def addUserIdent(param, self):
 				if name == "":
 					name = email
 
-				sendConfMail( HOSTclient + "confInsc?data=" + email , email, name)
+				sendConfMail( HOSTserv + "confInsc?data=" + email , email, name)
 				log_Info("Nouveau compte créé: " + email)
 				return dumps({"code":-1, "message": "S0052"})
 		else:
@@ -306,9 +308,8 @@ def confInsc(param, self):
 				#activateAccount(loginUser(res, docs[0].courriel, docs[0].motpass))
 				res = coll.update({"courriel": user}, { "$set": {"actif": True}})
 				log_Info("Nouveau compte activé: " + docs[0]['courriel'])
-				domain = "http://" + self.headers["Host"] + "/"
-				#pdb.set_trace()
-				redir = """<html><head><script type="text/javascript" language="Javascript">function initPage(){var cliURL = "%s",user = "%s",pass = "%s";document.location.href = cliURL + "login.html?data=" + user + "$pass$" + pass;}</script></head><body onload="initPage()"><h1>Confirmation en cours...</h1></body></html>""" % (domain, docs[0]['courriel'], docs[0]['motpass'])
+
+				redir = """<html><head><script type="text/javascript" language="Javascript">function initPage(){var cliURL = "%s",user = "%s",pass = "%s";document.location.href = cliURL + "login.html?data=" + user + "$pass$" + pass;}</script></head><body onload="initPage()"><h1>Confirmation en cours...</h1></body></html>""" % (HOSTclient, docs[0]['courriel'], docs[0]['motpass'])
 				return redir
 		else:	
 			return("Confirm" + str(param))		
