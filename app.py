@@ -38,8 +38,8 @@ print("logfile= " + LOG_FILE)
 
 global logPass 
 logPass = ""
-if os.getenv('PINFO') is not None:
-	logPass = os.environ['PINFO']
+if os.getenv('INFO') is not None:
+	logPass = os.environ['INFO']
 
 # MongoDB
 import pymongo
@@ -357,9 +357,11 @@ def authUser(param, self):
 				self.send_header('Set-Cookie', cookInfo)
 				cookInfo = 'userID=' + userID + ';max-age=31536000'
 				self.send_header('Set-Cookie', cookInfo)
+				print('Cookies Allow authUser N=2 ')
 			self.end_headers()
 			# Write content as utf-8 data
 			self.wfile.write(bytes(mess, "utf8"))
+			print('Cookies Allow authUser N=3 ')
 			return	
 		
 		if param:
