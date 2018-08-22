@@ -38,8 +38,8 @@ print("logfile= " + LOG_FILE)
 
 global logPass 
 logPass = ""
-if os.getenv('INFO') is not None:
-	logPass = os.environ['INFO']
+if os.getenv('PINFO') is not None:
+	logPass = os.environ['PINFO']
 
 # MongoDB
 import pymongo
