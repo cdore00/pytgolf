@@ -115,7 +115,7 @@ class golfHTTPServer(BaseHTTPRequestHandler):
 	# GET
 	def do_GET(self):
 		"""Manage GET request received"""
-
+		self.localClient = (self.client_address[0] == '127.0.0.1') 
 		# Send message back to client
 		query_components = parse_qs(urlparse(self.path).query)
 		url = self.path
@@ -163,8 +163,16 @@ def case_Func(fName, param, self):
 		return(authUser(param, self))
 	elif fName == "getPass":
 		return(getPass(param, self))
+	elif fName == "getPassForm":
+		return(getPassForm(self))		
 	elif fName == "saveUser":
 		return(saveUser(param, self))
+	elif fName == "getUser":
+		return(getUserInfo(param, self))		
+	elif fName == "updUser":
+		return(updateUser(param, self))	
+	elif fName == "savePass":
+		return(savePassword(param, self))		
 	elif fName == "showLog":
 		return(showLog(param))
 	elif fName == "getRegions":
@@ -324,7 +332,7 @@ def getPass(param, self):
 			coll = data.users
 			docs = coll.find({"courriel": email, "actif": True})
 			if docs.count() > 0:
-				sendRecupPassMail(docs[0]['courriel'], docs[0]['Nom'], docs[0]['motpass']);
+				sendRecupPassMail(docs[0]['courriel'], docs[0]['Nom'], docs[0]['motpass'])
 				return dumps({"code":-1, "message": "S0054"})
 			else:
 				return dumps({"code": 1, "message": "S0055"})
@@ -332,54 +340,57 @@ def getPass(param, self):
 			return dumps({'ok': 0})	# No param
 	except:
 		log_Info(self.path + " ERROR: " + sys.exc_info()[0] + " ; " + str(sys.exc_info()[1]))
+
+def getPassForm(self):
+	if self.localClient or checkSession(self, role = ['ADM']):
+		htmlContent = '<div id="accountForm"><div id="titrePref">Edit account</div><form id="formPass"></br> <div class="prefList"><label for="passUser" class="identLbl">New password</label><div class="prefVal"><input id="passUser" type="text" size="15" maxlength="20"/></div></div> <div><input id="okPref" class="bouton" type="submit" onClick="savePass(); return false;" value="Ok" /><input id="annulePref" class="bouton" type="button" onClick="closePref(); return false;"  value="Cancel"/></div></form></div>'
+		writeCook(self,htmlContent)
+		return False
+	else: 
+		return ('{"n":0,"ok":0, "message": "S0062"}')	
+		
+def writeCook(self, mess, sessID=False, userID=False):
+	""" Write cookies and end session (caller function must return False) """
+	#pdb.set_trace()
+	self.send_response(200)
+	self.send_header('Content-type','text/html')
+	if self.localClient:
+		self.send_header('Access-Control-Allow-Origin', '*')
+	else:
+		self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
+		self.send_header('Access-Control-Allow-Credentials', 'true')
+		self.send_header("Access-Control-Allow-Headers", "Origin, Content-Type, Cookie")
+		cook =  self.headers["Cookie"]
+		#print('Cookies Allow authUser N= ' + str(cook))
+		#  Set cookie
+		if sessID:
+			cookInfo = 'sessID=' + sessID + ';max-age=31536000'
+			self.send_header('Set-Cookie', cookInfo)
+		if userID:
+			cookInfo = 'userID=' + userID + ';max-age=31536000'
+			self.send_header('Set-Cookie', cookInfo)
+	self.end_headers()
+	# Write content as utf-8 data
+	self.wfile.write(bytes(mess, "utf8"))
+	return
 		
 def authUser(param, self):
 	""" To Authenticate or return user info to modify """
 	#pdb.set_trace()
-	try:
-		def writeCook(mess, sessID, userID):
-			#pdb.set_trace()
-			self.send_response(200)
-			self.send_header('Content-type','text/html')
-			if self.localClient:
-				self.send_header('Access-Control-Allow-Origin', '*')
-			else:
-				"""print('Allow-Origin= ' + str(self.headers.get('Host')))
-				if self.headers.get('Host') == 'cdore00.github.io':
-					print('Allow-Origin detect= ' + str(self.headers.get('Host')))
-					self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
-				if self.headers.get('Host') == 'cdore.ddns.net':
-					print('Allow-Origin detect= ' + str(self.headers.get('Host')))
-					#self.send_header('Access-Control-Allow-Origin', 'https://cdore.ddns.net')
-					self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
-				"""	
-				self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
-				self.send_header('Access-Control-Allow-Credentials', 'true')
-				self.send_header("Access-Control-Allow-Headers", "Origin, Content-Type, Cookie")
-				cook =  self.headers["Cookie"]
-				print('Cookies Allow authUser N= ' + str(cook))
-				#  Set cookie
-				cookInfo = 'sessID=' + sessID + ';max-age=31536000'
-				self.send_header('Set-Cookie', cookInfo)
-				cookInfo = 'userID=' + userID + ';max-age=31536000'
-				self.send_header('Set-Cookie', cookInfo)
-			self.end_headers()
-			# Write content as utf-8 data
-			self.wfile.write(bytes(mess, "utf8"))
-			return	
+	try:	
 		
 		if param:
 			#pdb.set_trace()
 			if not isinstance(param, (list)) and param.get("user"):
 				user = param["user"][0]
-				print("1- user= " + str(user))
+				#print("1- user= " + str(user))
 				coll = data.users
 				doc = coll.find({"courriel": user, "actif": True}, ["_id","Nom", "courriel", "motpass", "niveau"])
 				
 				def setSessID(mess, userID):
 					sessID = str(ObjectId())
 					res = coll.update({"courriel": user}, { "$set": {"sessID": sessID}})
-					writeCook(mess, sessID, userID)
+					writeCook(self, mess, sessID=sessID, userID=userID)
 					
 				if doc.count() == 0:
 					return dumps({'resp': {"result": 0} })	# Authenticate fail
@@ -398,10 +409,10 @@ def authUser(param, self):
 						return dumps({'resp': {"result": 0} })	# Authenticate fail
 				else:
 					if param.get("action"):
-						action = param["action"][0]
-						if action == "1":	# To modifiy account
+						action = int(param["action"][0])
+						if action > 0:	# To modifiy account
 							del dic['motpass']
-							return dumps(dic)  # To modifiy
+						return dumps(dic)  # To modifiy
 					else:
 						return dumps({'resp': {"result": 0} })	# Authenticate fail password empty
 			else:
@@ -429,7 +440,7 @@ def saveUser(param, self):
 						coll.update({"_id": o_id, "actif": True}, { "$set": {'Nom': name, 'courriel': user, 'motpass': Npass } })
 					else:
 						coll.update({"_id": o_id, "actif": True}, { "$set": {'Nom': name, 'courriel': user} })
-					return dumps({"resp": {"result":True} })
+					return dumps({"resp": {"result":True, "email": user} })
 				else:
 					return dumps({"resp": {"result":False, "message": "S0059"} }) # Invalid password
 			
@@ -440,11 +451,7 @@ def saveUser(param, self):
 				else:
 					return updUser(doc)
 			
-			if len(id) < 5:
-				o_id = int(id)
-			else:	
-				o_id = ObjectId(id)
-			
+			o_id = getID(id)
 			docs = coll.find({"_id": o_id, "actif": True})
 			
 			if docs.count() > 0:
@@ -458,6 +465,87 @@ def saveUser(param, self):
 			return dumps({'ok': 0})	# No param
 	except:
 		log_Info(self.path + " ERROR: " + sys.exc_info()[0] + " ; " + str(sys.exc_info()[1]))	
+
+def getUserInfo(param, self):
+	""" Get user account info by administrator"""
+	try:
+		if self.localClient or checkSession(self, role = ['ADM']):
+			#pdb.set_trace()
+			coll = data.users
+			if param.get("id"):
+				o_id = getID(param["id"][0])
+				doc = coll.find({"_id": o_id}, ["_id", "Nom", "courriel", "niveau", "actif", "note"])
+				dic = cursorTOdict(doc)
+				dic['role']	= ["MEM", "MEA", "ADM"]
+				return dumps(dic)
+			else:
+				word = param["word"][0]
+				if word == "xxxxx":
+					doc = coll.find({}, ["_id", "Nom", "courriel", "actif"])
+				else:
+					doc = coll.find({"courriel": {'$regex': word}}, ["_id", "Nom", "courriel", "actif"]) 
+				return dumps(doc)	
+		else: 
+			return ('{"n":0,"ok":0, "message": "S0062"}')	
+	except:
+		log_Info(self.path + " ERROR: " + sys.exc_info()[0] + " ; " + str(sys.exc_info()[1]))
+		
+def updateUser(param, self):
+	""" To modify user account info by administrator"""
+	try:
+		if self.localClient or checkSession(self, role = ['ADM']):
+			if param.get("id"):
+				#pdb.set_trace()
+				o_id = getID(param["id"][0])
+				user = param["user"][0]
+				if "name" in param:
+					name = param["name"][0]
+				else:
+					name = ""
+				role = param["role"][0]
+				active = param["active"][0]
+				active = True if active == '1' else False
+				
+				coll = data.users
+				docr = coll.update({"_id": o_id}, { "$set": {'Nom': name, 'courriel': user, "niveau": role, "actif": active } })
+				return dumps(docr)
+			else:
+				return dumps({'ok': 0})	# No param
+		else: 
+			return ('{"n":0,"ok":0, "message": "S0062"}')
+	except:
+		log_Info(self.path + " ERROR: " + sys.exc_info()[0] + " ; " + str(sys.exc_info()[1]))			
+		
+		
+def savePassword(param, self):
+	""" To modify password account by administrator"""
+	try:
+		if self.localClient or checkSession(self, role = ['ADM']):
+			#pdb.set_trace()
+			if param.get("id") and param.get("pass"):
+				
+				o_id = getID(param["id"][0])
+				passw = param["pass"][0]
+				
+				"""strCook =  self.headers["Cookie"]
+				if not strCook is None:
+					cookie.load(strCook)
+					admMail = cookie['userMail'].value
+				"""
+				coll = data.users
+				docr = coll.update({"_id": o_id}, { "$set": {'motpass': passw } })
+				if param.get("user_mail"):
+					email = param["user_mail"][0]
+					name = param["user_name"][0] if param.get("user_name") else "" 
+					sendRecupPassMail(email, name, passw)
+				return dumps(docr)
+			else:
+				return dumps({'ok': 0})	# No param
+		else: 
+			return ('{"n":0,"ok":0, "message": "S0062"}')
+	except:
+		log_Info(self.path + " ERROR: " + sys.exc_info()[0] + " ; " + str(sys.exc_info()[1]))				
+
 
 def getRegionList():
 	col = data.regions
@@ -679,7 +767,7 @@ def setGolfGPS(param, self):
 			clubId = int(para[5])
 			
 			coll = data.golfGPS
-			if checkSession(self, role = ['ADM','MEA']):
+			if self.localClient or checkSession(self, role = ['ADM','MEA']):
 				if toInit == 0:
 					docr = coll.update({ 'Parcours_id': courseId, 'trou': trou }, { '$set': {'Parcours_id': courseId, 'trou': trou, 'latitude': lat, 'longitude': lng } },  upsert=True )
 					return dumps(docr)
