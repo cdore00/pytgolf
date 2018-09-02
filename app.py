@@ -249,11 +249,13 @@ def checkSession(self, role = None):
 	""" Session ID check for user"""
 	#pdb.set_trace()
 	strCook =  self.headers["Cookie"]
+	print('1-Cookies = ' + str(strCook))
 	if strCook and 'sessID' in strCook and 'userID' in strCook:
 		cookie.load(strCook)
 		sID = cookie['sessID'].value
 		uID = getID(cookie['userID'].value)
 		coll = data.users
+		print('2-Role = ' + str(role))
 		if role is None:
 			doc = coll.find({"_id": uID, "sessID": sID}, ["_id"])
 		else:
@@ -342,6 +344,7 @@ def getPass(param, self):
 		log_Info(self.path + " ERROR: " + sys.exc_info()[0] + " ; " + str(sys.exc_info()[1]))
 
 def getPassForm(self):
+	print("self.localClient=" + str(self.localClient))
 	if self.localClient or checkSession(self, role = ['ADM']):
 		htmlContent = '<div id="accountForm"><div id="titrePref">Edit account</div><form id="formPass"></br> <div class="prefList"><label for="passUser" class="identLbl">New password</label><div class="prefVal"><input id="passUser" type="text" size="15" maxlength="20"/></div></div> <div><input id="okPref" class="bouton" type="submit" onClick="savePass(); return false;" value="Ok" /><input id="annulePref" class="bouton" type="button" onClick="closePref(); return false;"  value="Cancel"/></div></form></div>'
 		writeCook(self,htmlContent)
