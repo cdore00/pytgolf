@@ -84,7 +84,6 @@ class golfHTTPServer(BaseHTTPRequestHandler):
 		  func = strURL[1:]
 		else:
 		  func = strURL[1:pos]
-		#pdb.set_trace()
 		fpart = func.split("/")
 		func = fpart[len(fpart)-1]
 		return func
@@ -239,12 +238,12 @@ def getID(strID):
 		return int(strID)
 	else:	
 		return ObjectId(strID)
-		
+
 def cursorTOdict(doc):
 	strCur = dumps(doc)
 	jsonCur = loads(strCur)
 	return dict(jsonCur[0])
-	
+
 def checkSession(self, role = None):
 	""" Session ID check for user"""
 	#pdb.set_trace()
@@ -344,13 +343,10 @@ def getPass(param, self):
 		log_Info(self.path + " ERROR: " + sys.exc_info()[0] + " ; " + str(sys.exc_info()[1]))
 
 def getPassForm(self):
-	print("self.localClient=" + str(self.localClient))
-	if self.localClient or checkSession(self, role = ['ADM']):
-		htmlContent = '<div id="accountForm"><div id="titrePref">Edit account</div><form id="formPass"></br> <div class="prefList"><label for="passUser" class="identLbl">New password</label><div class="prefVal"><input id="passUser" type="text" size="15" maxlength="20"/></div></div> <div><input id="okPref" class="bouton" type="submit" onClick="savePass(); return false;" value="Ok" /><input id="annulePref" class="bouton" type="button" onClick="closePref(); return false;"  value="Cancel"/></div></form></div>'
-		writeCook(self,htmlContent)
-		return False
-	else: 
-		return ('{"n":0,"ok":0, "message": "S0062"}')	
+	""" Return HTML code form to change password """
+	htmlContent = '<div id="accountForm"><div id="titrePref">Edit account</div><form id="formPass"></br> <div class="prefList"><label for="passUser" class="identLbl">New password</label><div class="prefVal"><input id="passUser" type="text" size="15" maxlength="20"/></div></div> <div><input id="okPref" class="bouton" type="submit" onClick="savePass(); return false;" value="Ok" /><input id="annulePref" class="bouton" type="button" onClick="closePref(); return false;"  value="Cancel"/></div></form></div>'
+	writeCook(self,htmlContent)
+	return False	
 		
 def writeCook(self, mess, sessID=False, userID=False):
 	""" Write cookies and end session (caller function must return False) """
@@ -379,11 +375,9 @@ def writeCook(self, mess, sessID=False, userID=False):
 		
 def authUser(param, self):
 	""" To Authenticate or return user info to modify """
-	#pdb.set_trace()
 	try:	
 		
 		if param:
-			#pdb.set_trace()
 			if not isinstance(param, (list)) and param.get("user"):
 				user = param["user"][0]
 				#print("1- user= " + str(user))
@@ -473,7 +467,6 @@ def getUserInfo(param, self):
 	""" Get user account info by administrator"""
 	try:
 		if self.localClient or checkSession(self, role = ['ADM']):
-			#pdb.set_trace()
 			coll = data.users
 			if param.get("id"):
 				o_id = getID(param["id"][0])
@@ -498,7 +491,6 @@ def updateUser(param, self):
 	try:
 		if self.localClient or checkSession(self, role = ['ADM']):
 			if param.get("id"):
-				#pdb.set_trace()
 				o_id = getID(param["id"][0])
 				user = param["user"][0]
 				if "name" in param:
@@ -524,7 +516,6 @@ def savePassword(param, self):
 	""" To modify password account by administrator"""
 	try:
 		if self.localClient or checkSession(self, role = ['ADM']):
-			#pdb.set_trace()
 			if param.get("id") and param.get("pass"):
 				
 				o_id = getID(param["id"][0])
@@ -671,7 +662,6 @@ def getClubData(param, self):
 				strParc += str(int(x['_id'])) + "$"
 			strParc=strParc[0:len(strParc)-1]
 			pBlc = {}
-			#pdb.set_trace()
 			pBlc['data'] = [strParc]
 			oData.append(getBloc(pBlc, self))
 			
@@ -803,7 +793,6 @@ def countUserGame(param, self):
 			is18 = int(para[1])
 
 			coll = data.score
-			#pdb.set_trace()
 			if (is18 == 18):
 				count = coll.find({"USER_ID": user, "T18": { "$exists": True, "$nin": [ 0 ] }}).count()
 				group = coll.aggregate([ {"$match" : {"USER_ID": user, "T18": { "$exists": True, "$nin": [ 0 ] }}}, {"$group" : {"_id":{"name":"$name","parcours":"$PARCOURS_ID"}, "count":{"$sum":1}}} ])
@@ -1003,7 +992,6 @@ def getGame(param, self, userID = False, parcID = False):
 	try:
 		def getG(user, parc):
 			coll = data.score
-			#pdb.set_trace()
 			doc = coll.find({ "USER_ID": user, "PARCOURS_ID": parc, "score_date": None })
 			if doc.count() > 0:
 				cur = cursorTOdict(doc)
@@ -1091,7 +1079,6 @@ def saveClub(param, self):
 					res["result"]=doc
 					res["result"]["_id"] = parc["_id"]
 					courseRes.append(res)
-					#pdb.set_trace()
 					if parc["_id"] in Pids:
 						Pids.remove(parc["_id"])
 				
@@ -1125,8 +1112,7 @@ def saveClub(param, self):
 				matchObj = re.match("^(?!.*[DFIOQU])[A-VXY][0-9][A-Z]●?[0-9][A-Z][0-9]$"  ,cp)
 				if (matchObj):
 					cps = cp[0:3] + " " + cp[3:6]
-				#{'name': 'Auberivière', 'addr': '777, rue Alexandre', 'ville': 'Lévis', 'codp': 'G6V 7M5', 'tel1': '418-835-0480', 'urlc': 'http://www.golflauberiviere.com/', 'urlv': 'http://www.ville.levis.qc.ca/', 'lng': '-71.188', 'lat': '46.764', 'region': '2'}
-				#pdb.set_trace()
+
 				clubID = oClub["ID"]
 				if clubID > 1000000:	# New club
 					clubID = getClubID()
