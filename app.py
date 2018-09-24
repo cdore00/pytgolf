@@ -955,10 +955,42 @@ def updateGame(param, self):
 			Tno = "T" + str(hole)
 			Pno = "P" + str(hole)
 			Lno = "L" + str(hole)
-
+			
 			coll = data.score
+			if len(para) > 7:
+				sData = (para[7])
+				sData = loads(sData)
+				sField = dict()
+				sField["USER_ID"] = user
+				sField["PARCOURS_ID"] = parc
+				sField["score_date"] = None
+				sField["name"] = name
+				sField[Tno] = stroke
+				sField[Pno] = put
+				sField[Lno] = lost
+				#pdb.set_trace()
+				hn = 1
+				for sH in sData:
+					if len(sH) > 0:
+						Tno = "T" + str(hn)
+						Pno = "P" + str(hn)
+						Lno = "L" + str(hn)
+						sField[Tno] = int(sH["T"])
+						sField[Pno] = int(sH["P"])
+						sField[Lno] = int(sH["L"])
+					hn+= 1
+				#pdb.set_trace()
+				if len(para) > 8:
+					oData = (para[8])
+					oData = loads(oData)
+					others = []
+					for oD in oData:
+						others.append(oD)
+					sField["others"] = others
 
-			res = coll.update({ "USER_ID": user, "PARCOURS_ID": parc, "score_date": None }, { "$set": {"USER_ID": user, "PARCOURS_ID": parc, "score_date": None, Tno: stroke, Pno: put, Lno: lost, "name": name} },  upsert=True)
+				res = coll.update({ "USER_ID": user, "PARCOURS_ID": parc, "score_date": None }, { "$set": sField },  upsert=True)
+			else:
+				res = coll.update({ "USER_ID": user, "PARCOURS_ID": parc, "score_date": None }, { "$set": {"USER_ID": user, "PARCOURS_ID": parc, "score_date": None, "name": name, Tno: stroke, Pno: put, Lno: lost} },  upsert=True)
 			
 			return getGame(None, self, userID = user, parcID = parc)
 		else:
