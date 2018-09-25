@@ -76,9 +76,6 @@ class golfHTTPServer(BaseHTTPRequestHandler):
 	localClient = False
 	@staticmethod
 	def call_Func(strURL):
-		#pdb.set_trace()
-		#fpart = os.path.split(strURL)
-		#strURL = fpart[len(fpart)-1]
 		pos = strURL.find("?")
 		if pos == -1:
 		  func = strURL[1:]
@@ -213,7 +210,7 @@ def case_Func(fName, param, self):
 	elif fName == "delClub":
 		return(delClub(param, self))
 	else:
-		return("DB server22" + str(param))
+		return("DB server3" + str(param))
 
 
 # Requests
@@ -649,8 +646,6 @@ def getClubList(param, self):
 def getClubData(param, self):
 	try:
 		if param.get("data"):
-			#pdb.set_trace()
-			#{'data': ['39$61']}
 			oData = []
 			oData.append(getRegionList())
 			clb = getClubParc(param, self)
@@ -679,7 +674,7 @@ def getClubParc(param, self):
 			ids = [x for x in clubList.split("$")]
 			clubID = int(ids[0])
 			userID = None if ids[1] == 'null' else ids[1]
-			#pdb.set_trace()
+
 			if userID:
 				if len(userID) < 5:
 					userID = int(userID)
@@ -975,11 +970,11 @@ def updateGame(param, self):
 						Tno = "T" + str(hn)
 						Pno = "P" + str(hn)
 						Lno = "L" + str(hn)
-						sField[Tno] = int(sH["T"])
-						sField[Pno] = int(sH["P"])
-						sField[Lno] = int(sH["L"])
+						sField[Tno] = None if sH["T"] == None else int(sH["T"])
+						sField[Pno] = None if sH["P"] == None else int(sH["P"])
+						sField[Lno] = None if sH["L"] == None else int(sH["L"])
 					hn+= 1
-				#pdb.set_trace()
+				
 				if len(para) > 8:
 					oData = (para[8])
 					oData = loads(oData)
@@ -1267,7 +1262,6 @@ def showLog(param):
 def sendRecupPassMail(eMail, name, passw):
 	""" Send email to retreive password"""
 	text = ''
-	#pdb.set_trace()
 	name = name if name != '' else eMail
 	html = """\
 	<html><body><div style="text-align: center;"><div style="background-color: #3A9D23;height: 34px;"><div style="margin: 3px;float:left;"><img alt="Image Golf du Québec" width="25" height="25" src="https://cdore00.github.io/golf/images/golf.png" /></div><div style="font-size: 22px;font-weight: bold;color: #ccf;padding-top: 5px;">Golfs du Qu&eacute;bec</div></div></br><p style="width: 100; text-align: left;">Bonjour %s,</p><p></p><p style="width: 100; text-align: left;">Votre mot de passe est : %s </p><p></p><p><div id="copyright">Copyright &copy; 2005-2017</div></p></div></body></html>
