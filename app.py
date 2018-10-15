@@ -27,7 +27,7 @@ def millis():
 
 HOSTserv = 'http://127.0.0.1:3000/'
 HOSTclient = 'http://localhost:8080/'
-#'https://cdore00.github.io/golf/'
+HOSTcors = 'https://cdore00.github.io'
 
 #Log file
 LOG_DIR =os.getcwd() + '/log'
@@ -98,7 +98,7 @@ class golfHTTPServer(BaseHTTPRequestHandler):
 			if self.localClient:
 				self.send_header('Access-Control-Allow-Origin', '*')
 			else:
-				self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
+				self.send_header('Access-Control-Allow-Origin', HOSTcors)
 				self.send_header('Access-Control-Allow-Credentials', 'true')
 				self.send_header("Access-Control-Allow-Headers", "Origin, Content-Type, Cookie")
 			#  Set cookie
@@ -353,7 +353,7 @@ def writeCook(self, mess, sessID=False, userID=False):
 	if self.localClient:
 		self.send_header('Access-Control-Allow-Origin', '*')
 	else:
-		self.send_header('Access-Control-Allow-Origin', 'https://cdore00.github.io')
+		self.send_header('Access-Control-Allow-Origin', HOSTcors)
 		self.send_header('Access-Control-Allow-Credentials', 'true')
 		self.send_header("Access-Control-Allow-Headers", "Origin, Content-Type, Cookie")
 		cook =  self.headers["Cookie"]
@@ -786,21 +786,27 @@ def countUserGame(param, self):
 			para = [x for x in param.split("$")]
 			user = getID(para[0])
 			is18 = int(para[1])
-
+			#pdb.set_trace()
+			withGroup = True if len(para) > 2 else False
+			
 			coll = data.score
 			if (is18 == 18):
 				count = coll.find({"USER_ID": user, "T18": { "$exists": True, "$nin": [ 0 ] }}).count()
-				group = coll.aggregate([ {"$match" : {"USER_ID": user, "T18": { "$exists": True, "$nin": [ 0 ] }}}, {"$group" : {"_id":{"name":"$name","parcours":"$PARCOURS_ID"}, "count":{"$sum":1}}} ])
-				return ('{"count":' + str(count) + ',"group":' + dumps(group) + '}')
+				if withGroup == True:
+					group = coll.aggregate([ {"$match" : {"USER_ID": user, "T18": { "$exists": True, "$nin": [ 0 ] }}}, {"$group" : {"_id":{"name":"$name","parcours":"$PARCOURS_ID"}, "count":{"$sum":1}}} ])
 			else:
 				count = coll.find({"USER_ID": user, "$or":[{"T18":0},{"T18":None}]  } ).count()
-				group = coll.aggregate([ {"$match" : {"USER_ID": user, "$or":[{"T18":0},{"T18":None}]  }}, {"$group" : {"_id":{"name":"$name","parcours":"$PARCOURS_ID"}, "count":{"$sum":1}}} ])
+				if withGroup == True:
+					group = coll.aggregate([ {"$match" : {"USER_ID": user, "$or":[{"T18":0},{"T18":None}]  }}, {"$group" : {"_id":{"name":"$name","parcours":"$PARCOURS_ID"}, "count":{"$sum":1}}} ])
+			if withGroup == True:
 				return ('{"count":' + str(count) + ',"group":' + dumps(group) + '}')
-				#return (str(count))
+			else:
+				return ('{"count":' + str(count) + '}')
 		else:
 			return dumps({'ok': 0})	# No param
 	except:
 		log_Info(self.path + " ERROR: " + sys.exc_info()[0] + " ; " + str(sys.exc_info()[1]))		
+
 		
 def getGameList(param, self):
 	"""Return game list result """
@@ -835,7 +841,7 @@ def getGameList(param, self):
 						x['_id'] = str(x['_id'])
 					cur.append(x)
 				
-				if (intTele > 0):
+				if (intTele > 0):	# Request for download result in file
 					self.send_response(200)
 					self.send_header('Content-type','text/html')
 					self.send_header('Access-Control-Allow-Origin', '*')
@@ -856,7 +862,7 @@ def getGameList(param, self):
 						self.end_headers()
 						self.wfile.write(bytes(contents, "utf8"))
 					return False
-				else:
+				else:	# Request for HTML page
 					return dumps(cur)
 
 			if is18 == 18:
