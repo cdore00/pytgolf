@@ -173,6 +173,8 @@ def case_Func(fName, param, self):
 		return(showLog(param))
 	elif fName == "getRegions":
 		return(getRegionList())
+	elif fName == "getParcInfo":
+		return(getParcInfo(param, self))
 	elif fName == "getFav":
 		return(getFav(param, self))
 	elif fName == "updateFav":
@@ -543,6 +545,19 @@ def getRegionList():
 	docs = col.find({})
 	res = dumps(docs)
 	return res
+	
+	
+def getParcInfo(param, self):
+	try:
+		if param.get("data"):
+			parcID = getID(param["data"][0])
+			coll = data.parcours
+			docs = coll.find({"_id": parcID})
+			return dumps(docs)
+		else:
+			return dumps({'ok': 0})	# No param	
+	except:
+		log_Info(self.path + " ERROR: " + sys.exc_info()[0] + " ; " + str(sys.exc_info()[1]))			
 	
 def searchResult(param, self):
 
