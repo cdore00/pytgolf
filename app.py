@@ -211,6 +211,10 @@ def case_Func(fName, param, self):
 		return(saveClub(param, self))
 	elif fName == "delClub":
 		return(delClub(param, self))
+	elif fName == "setPosition":
+		return(setPosition(param, self))
+	elif fName == "getPosition":
+		return(getPosition(param, self))		
 	else:
 		return("DB server3" + str(param))
 
@@ -779,6 +783,7 @@ def setGolfGPS(param, self):
 						holeNo = i + 1
 						resp = coll.update({ 'Parcours_id': courseId, 'trou': holeNo }, { '$set': {'Parcours_id': courseId, 'trou': holeNo, 'latitude': lat, 'longitude': lng } },  upsert=True)
 						if holeNo == toInit:
+							#pdb.set_trace()
 							coll = data.parcours
 							pRep = coll.update({"_id":courseId}, {"$set":{"GPS": True }})
 							pa = coll.find({'CLUB_ID': clubId})
@@ -1221,6 +1226,45 @@ def delClub(param, self):
 			doc = collP.remove({"CLUB_ID":clubID})
 			doc = collC.remove({"_id": clubID })
 			
+			return dumps(doc)
+		else:
+			return dumps({'ok': 0})	# No param
+	except:
+		log_Info(self.path + " ERROR: " + sys.exc_info()[0] + " ; " + str(sys.exc_info()[1]))
+
+def setPosition(param, self):
+	try:
+		if param.get("data"):
+			param = param["data"][0]
+			para = [x for x in param.split("$")]
+			userId = getID(para[0])
+			timeStart = int(para[1])
+			locTime = int(para[2])
+			locLat = float(para[3])
+			locLng = float(para[4])
+			locAcc = int(float(para[5]))
+			#pdb.set_trace()
+			coll = data.trajet
+			doc = coll.update( { 'USER_ID': userId, 'startTime': timeStart}, {'$push': {'locList': {'time': locTime, 'lat': locLat, 'lng': locLng, 'acc': locAcc}}},  upsert=True )
+			#doc = coll.update( { 'USER_ID': userId, 'startTime': { '$gte': timeStart, '$lte': timeEnd }, {'$push': {'locList': {'time': locTime, 'lat': locLat, 'lng': locLng, 'acc': locAcc}}},  upsert=True )
+			return dumps(doc)
+		else:
+			return dumps({'ok': 0})	# No param
+	except:
+		log_Info(self.path + " ERROR: " + sys.exc_info()[0] + " ; " + str(sys.exc_info()[1]))
+		
+def getPosition(param, self):
+	try:
+		if param.get("data"):
+			param = param["data"][0]
+			para = [x for x in param.split("$")]
+			userId = getID(para[0])
+			timeStart = int(para[1])
+			timeEnd = timeStart + 86400000	# + 24hre
+			#pdb.set_trace()
+			coll = data.trajet
+			#doc = coll.find( { 'USER_ID': userId, 'startTime': timeStart})
+			doc = coll.find( { 'USER_ID': userId, 'startTime': { '$gte': timeStart, '$lt': timeEnd } })
 			return dumps(doc)
 		else:
 			return dumps({'ok': 0})	# No param
