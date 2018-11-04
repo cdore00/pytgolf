@@ -1264,8 +1264,16 @@ def getPosition(param, self):
 			#pdb.set_trace()
 			coll = data.trajet
 			#doc = coll.find( { 'USER_ID': userId, 'startTime': timeStart})
-			doc = coll.find( { 'USER_ID': userId, 'startTime': { '$gte': timeStart, '$lt': timeEnd } })
-			return dumps(doc)
+			if timeStart == 0:
+				doc = coll.find( { 'USER_ID': userId}).sort("_id",-1).limit(1)
+			else:
+				doc = coll.find( { 'USER_ID': userId, 'startTime': { '$gte': timeStart, '$lt': timeEnd } })
+				if doc.count() == 0:
+					doc = coll.find( { 'USER_ID': userId, 'startTime': { '$gte': timeStart}}).sort("_id").limit(5)
+			if doc.count() > 0:
+				return dumps(doc)
+			else:
+				return dumps({'length': 0, 'timeStart': timeStart})
 		else:
 			return dumps({'ok': 0})	# No param
 	except:
