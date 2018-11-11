@@ -1237,15 +1237,20 @@ def setPosition(param, self):
 		if param.get("data"):
 			param = param["data"][0]
 			para = [x for x in param.split("$")]
+			coll = data.trajet
+			#pdb.set_trace()
 			userId = getID(para[0])
 			timeStart = int(para[1])
 			locTime = int(para[2])
 			locLat = float(para[3])
 			locLng = float(para[4])
 			locAcc = int(float(para[5]))
-			#pdb.set_trace()
-			coll = data.trajet
-			doc = coll.update( { 'USER_ID': userId, 'startTime': timeStart}, {'$push': {'locList': {'time': locTime, 'lat': locLat, 'lng': locLng, 'acc': locAcc}}},  upsert=True )
+			if (len(para) > 6):
+				#print(str(len(para)))
+				hotSpot = int(para[6])
+				doc = coll.update( { 'USER_ID': userId, 'startTime': timeStart}, {'$push': {'locList': {'time': locTime, 'lat': locLat, 'lng': locLng, 'acc': locAcc, 'hot': hotSpot}}},  upsert=True )
+			else:	
+				doc = coll.update( { 'USER_ID': userId, 'startTime': timeStart}, {'$push': {'locList': {'time': locTime, 'lat': locLat, 'lng': locLng, 'acc': locAcc}}},  upsert=True )
 			#doc = coll.update( { 'USER_ID': userId, 'startTime': { '$gte': timeStart, '$lte': timeEnd }, {'$push': {'locList': {'time': locTime, 'lat': locLat, 'lng': locLng, 'acc': locAcc}}},  upsert=True )
 			return dumps(doc)
 		else:
