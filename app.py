@@ -3,7 +3,7 @@
 
 import pdb
 #; pdb.set_trace()
-import sys, os, io, time, re, csv, urllib.parse, urllib.request
+import sys, os, io, time, re, cgi, csv, urllib.parse, urllib.request
 import smtplib
 
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -28,6 +28,7 @@ def millis():
 HOSTserv = 'http://127.0.0.1:3000/'
 HOSTclient = 'http://localhost:8080/'
 HOSTcors = 'https://cdore00.github.io'
+#self.headers["Host"] == 'cdore.ddns.net'
 
 #Log file
 LOG_DIR =os.getcwd() + '/log'
@@ -124,18 +125,24 @@ class golfHTTPServer(BaseHTTPRequestHandler):
 	def do_POST(self):
 		"""Manage POST request received"""
 		self.localClient = (self.client_address[0] == '127.0.0.1')  # or self.client_address[0] == '172.17.0.1')
-		
-		content_length = int(self.headers['Content-Length']) # <--- Gets the size of data
-		post_data = self.rfile.read(content_length) # <--- Gets the data itself
+		#pdb.set_trace()	
+		ctype, pdict = cgi.parse_header(self.headers['content-type'])
+		pdict['boundary'] = bytes(pdict['boundary'], "utf-8")
+		fields = cgi.parse_multipart(self.rfile, pdict)
+		self.fields = fields
+		if  'info' in fields:
+			self.fields = fields['info'][0].decode()	
+		#content_length = int(self.headers['Content-Length']) # <--- Gets the size of data
+		#post_data = self.rfile.read(content_length) # <--- Gets the data itself
 
 		cook =  self.headers["Cookie"]
 		print('Cookies Allow do_POST= ' + str(cook))
-		#pdb.set_trace()
+
 		
 		# Send message back to client
 		query_components = parse_qs(urlparse(self.path).query)
-		if not query_components:
-			query_components = urllib.parse.parse_qsl(str(post_data.decode('utf-8')))
+		#if not query_components:
+			#query_components = urllib.parse.parse_qsl(str(post_data.decode('utf-8')))
 		url = self.path
 		
 		##print("POST2 " + url)
@@ -143,7 +150,12 @@ class golfHTTPServer(BaseHTTPRequestHandler):
 		self.return_Res(self,message)
 		
 		return		
-
+	
+	def fields_TO_obj(self):
+		pos = self.fields.find("{")
+		strobj = self.fields[pos:]
+		return loads(strobj)
+	
 #End class
 
 def case_Func(fName, param, self):
@@ -1070,7 +1082,10 @@ def saveClub(param, self):
 
 	try:
 		if param.get("data"):
-
+			
+			#pdb.set_trace()
+			obj = self.fields_TO_obj()
+				
 			def saveBlocs(tupC, Bids):
 				""" Save blocs data for the courses """
 				blocRes = []
@@ -1100,7 +1115,7 @@ def saveClub(param, self):
 					res["result"]=doc
 					res["result"]["_id"] = bloc["_id"]
 					blocRes.append(res)
-				#pdb.set_trace()
+
 				docs = coll.remove({"_id": {"$in": Bids } })
 				return blocRes, Bids
 				
@@ -1149,10 +1164,10 @@ def saveClub(param, self):
 					docID = coll.find({}).sort("_id",-1).limit(1)
 					return int(docID[0]["_id"] + 1)
 				#pdb.set_trace()
-				param = param["data"][0]
+				##param = param["data"][0]
 				tupC = (0,0),(0,0)	# For new PARCOURS_ID in blocs
-				jsonCur = loads(param)
-				obj = dict(jsonCur)
+				##jsonCur = loads(param)
+				##obj = dict(jsonCur)
 				oClub = obj["club"]
 				oCourses = obj["course"]
 				if 'blocs' in obj:
@@ -1266,7 +1281,7 @@ def getPosition(param, self):
 			userId = getID(para[0])
 			timeStart = int(para[1])
 			timeEnd = timeStart + 86400000	# + 24hre
-			#pdb.set_trace()
+
 			coll = data.trajet
 			#doc = coll.find( { 'USER_ID': userId, 'startTime': timeStart})
 			if timeStart == 0:
@@ -1415,6 +1430,8 @@ def build_arg_dict(arg):
 		add_dict("domain")
 	if "pass" in arg:
 		add_dict("pass")
+	if "cors" in arg:
+		add_dict("cors")
 		
 	if (len(arg) / 2) != len(argd):
 		return False
@@ -1428,6 +1445,10 @@ if __name__ == "__main__":
 		del arg[0]
 		param = build_arg_dict(arg)
 		if param:
+			if "cors" in param:
+				HOSTcors = param["cors"]
+				print("CORS= " + HOSTcors)
+			#print(str(len(argv)))
 			if "pass" in param:
 				#global logPass 
 				logPass = param["pass"]
@@ -1439,6 +1460,8 @@ if __name__ == "__main__":
 					run(domain=(param["domain"]))
 				elif "port" in param:
 					run(port=int(param["port"]))
+			else:
+				run()
 		else:
 			print("[domain VALUE] [port VALUE] [pass VALUE]")
 	else:
