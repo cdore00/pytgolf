@@ -127,13 +127,15 @@ class golfHTTPServer(BaseHTTPRequestHandler):
 		self.localClient = (self.client_address[0] == '127.0.0.1')  # or self.client_address[0] == '172.17.0.1')
 		#pdb.set_trace()	
 		ctype, pdict = cgi.parse_header(self.headers['content-type'])
-		pdict['boundary'] = bytes(pdict['boundary'], "utf-8")
-		fields = cgi.parse_multipart(self.rfile, pdict)
-		self.fields = fields
-		if  'info' in fields:
-			self.fields = fields['info'][0].decode()	
-		#content_length = int(self.headers['Content-Length']) # <--- Gets the size of data
-		#post_data = self.rfile.read(content_length) # <--- Gets the data itself
+		if len(pdict) > 0:
+			pdict['boundary'] = bytes(pdict['boundary'], "utf-8")
+			fields = cgi.parse_multipart(self.rfile, pdict)
+			self.fields = fields
+			if  'info' in fields:
+				self.fields = fields['info'][0].decode()	
+		else:
+			content_length = int(self.headers['Content-Length']) # <--- Gets the size of data
+			post_data = self.rfile.read(content_length) # <--- Gets the data itself
 
 		cook =  self.headers["Cookie"]
 		print('Cookies Allow do_POST= ' + str(cook))
@@ -141,8 +143,8 @@ class golfHTTPServer(BaseHTTPRequestHandler):
 		
 		# Send message back to client
 		query_components = parse_qs(urlparse(self.path).query)
-		#if not query_components:
-			#query_components = urllib.parse.parse_qsl(str(post_data.decode('utf-8')))
+		if not query_components and len(pdict) == 0:
+			query_components = urllib.parse.parse_qsl(str(post_data.decode('utf-8')))
 		url = self.path
 		
 		##print("POST2 " + url)
